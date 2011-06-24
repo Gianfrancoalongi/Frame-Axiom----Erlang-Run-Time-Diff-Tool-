@@ -35,5 +35,6 @@ diff(Ets,application,[load_unload]) ->
     Loaded = application:loaded_applications(),
     [{application,_,Recorded}] = ets:lookup(Ets,application),
     NewLoaded = [{loaded,hd(tuple_to_list(App))} ||App <- Loaded, not lists:member(App,Recorded)], 
-    NewLoaded.
+    UnLoaded = [{unloaded,hd(tuple_to_list(App))} ||App <- Recorded, not lists:member(App,Loaded)],
+    NewLoaded++UnLoaded.
 
