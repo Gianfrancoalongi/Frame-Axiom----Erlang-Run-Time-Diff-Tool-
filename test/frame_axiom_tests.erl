@@ -23,15 +23,15 @@ process_no_change_diff_test() ->
 application_creation_diff_test() ->
     Ref = frame_axiom:snapshot(application),
     application:start(sasl),
-    ?assertEqual([{started,sasl}],frame_axiom:diff(Ref,application,[started])),
+    ?assertEqual([{started,sasl}],frame_axiom:diff(Ref,application,[start_stop])),
     application:stop(sasl).
 
 application_stop_diff_test() ->
     application:start(sasl),
     Ref = frame_axiom:snapshot(application),
     application:stop(sasl),
-    ?assertEqual([{stopped,sasl}],frame_axiom:diff(Ref,application,[started])).
+    ?assertEqual([{stopped,sasl}],frame_axiom:diff(Ref,application,[start_stop])).
 
 application_no_change_diff_test() ->
     Ref = frame_axiom:snapshot(application),
-    ?assertEqual([],frame_axiom:diff(Ref,application,[started])).
+    ?assertEqual([],frame_axiom:diff(Ref,application,[start_stop])).

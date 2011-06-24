@@ -21,7 +21,7 @@ diff(Ets,process) ->
     Created = [{created,P} || P <- Processes, not lists:member(P,Recorded)],
     Dead++Created.
     
-diff(Ets,application,[started]) ->    
+diff(Ets,application,[start_stop]) ->    
     Running = application:which_applications(),
     [{application,Recorded}] = ets:lookup(Ets,application),
     Started = [{started,hd(tuple_to_list(App))} ||App <- Running, not lists:member(App,Recorded)],
