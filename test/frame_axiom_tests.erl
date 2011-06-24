@@ -65,3 +65,8 @@ ets_delection_diff_test() ->
     Ref = frame_axiom:snapshot(ets),
     ets:delete(E),
     ?assertEqual([{deleted,E}],frame_axiom:diff(Ref,ets)).
+
+ets_no_change_test() ->
+    Ref = frame_axiom:snapshot(ets),
+    ?assertEqual([],frame_axiom:diff(Ref,ets)).
+
