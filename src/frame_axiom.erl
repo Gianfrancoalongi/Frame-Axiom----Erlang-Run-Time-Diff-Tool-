@@ -33,7 +33,8 @@ diff(Ets,ets) ->
     Current = ets:all(),
     [{ets,Recorded}] = ets:lookup(Ets,ets),
     Created = [{created,E}||E<-Current,not lists:member(E,Recorded)],
-    Created.
+    Deleted = [{deleted,E}||E<-Recorded,not lists:member(E,Current)],
+    Created++Deleted.
     
 diff(Ets,application,[start_stop]) ->    
     Running = application:which_applications(),
@@ -41,7 +42,7 @@ diff(Ets,application,[start_stop]) ->
     Started = [{started,hd(tuple_to_list(App))} ||App <- Running, not lists:member(App,Recorded)],
     Stopped = [{stopped,hd(tuple_to_list(App))} ||App <- Recorded, not lists:member(App,Running)],
     Started++Stopped;
-diff(Ets,application,[load_unload]) ->    
+diff(Ets,application,[load_unload]) ->
     Loaded = application:loaded_applications(),
     [{application,_,Recorded}] = ets:lookup(Ets,application),
     NewLoaded = [{loaded,hd(tuple_to_list(App))} ||App <- Loaded, not lists:member(App,Recorded)], 
