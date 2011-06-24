@@ -50,3 +50,8 @@ application_unload_diff_test() ->
     Ref = frame_axiom:snapshot(application),
     application:unload(sasl),
     ?assertEqual([{unloaded,sasl}],frame_axiom:diff(Ref,application,[load_unload])).
+
+application_load_no_change_diff_test() ->
+    Ref = frame_axiom:snapshot(application),
+    ?assertEqual([],frame_axiom:diff(Ref,application,[load_unload])).
+    
