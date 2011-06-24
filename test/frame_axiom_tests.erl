@@ -19,3 +19,10 @@ process_death_diff_test() ->
 process_no_change_diff_test() ->
     Ref = frame_axiom:snapshot(process),
     ?assertEqual([],frame_axiom:diff(Ref,process)).
+
+application_creation_diff_test() ->
+    Ref = frame_axiom:snapshot(application),
+    application:start(sasl),
+    ?assertEqual([{started,sasl}],frame_axiom:diff(Ref,application,[started])),
+    application:stop(sasl).
+		      
