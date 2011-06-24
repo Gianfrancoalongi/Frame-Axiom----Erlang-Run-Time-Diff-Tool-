@@ -11,7 +11,7 @@ snapshot(process) ->
 diff(Ets,process) ->
     Processes = erlang:processes(),
     [{process,Recorded}] = ets:lookup(Ets,process),
-    Dead = [{dead,P} || P <- Recorded, not lists:member(P,Processes)],
+    Dead = [{died,P} || P <- Recorded, not lists:member(P,Processes)],
     Created = [{created,P} || P <- Processes, not lists:member(P,Recorded)],
     Dead++Created.
     
