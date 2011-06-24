@@ -15,3 +15,7 @@ process_death_diff_test() ->
 	{'EXIT',Pid,normal} -> ok_died
     end,
     ?assertEqual([{died,Pid}],frame_axiom:diff(Ref,process)).
+
+process_no_change_diff_test() ->
+    Ref = frame_axiom:snapshot(process),
+    ?assertEqual([],frame_axiom:diff(Ref,process)).
