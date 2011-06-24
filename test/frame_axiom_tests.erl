@@ -54,4 +54,8 @@ application_unload_diff_test() ->
 application_load_no_change_diff_test() ->
     Ref = frame_axiom:snapshot(application),
     ?assertEqual([],frame_axiom:diff(Ref,application,[load_unload])).
-    
+
+ets_creation_diff_test() ->
+    Ref = frame_axiom:snapshot(ets),
+    New = ets:new(some,[]),
+    ?assertEqual([{created,New}],frame_axiom:diff(Ref,ets)).

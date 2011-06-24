@@ -16,14 +16,24 @@ snapshot(application) ->
     Running = application:which_applications(),
     Loaded = application:loaded_applications(),
     ets:insert(Ets,{application,Running,Loaded}),
-    Ets.    
+    Ets;
+snapshot(ets) ->
+    Ets = ets:new(ets,[private]),
+    Existing = ets:all(),
+    ets:insert(Ets,{ets,Existing}),
+    Ets.
 
 diff(Ets,process) ->
     Processes = erlang:processes(),
     [{process,Recorded}] = ets:lookup(Ets,process),
     Dead = [{died,P} || P <- Recorded, not lists:member(P,Processes)],
     Created = [{created,P} || P <- Processes, not lists:member(P,Recorded)],
-    Dead++Created.
+    Dead++Created;
+diff(Ets,ets) ->
+    Current = ets:all(),
+    [{ets,Recorded}] = ets:lookup(Ets,ets),
+    Created = [{created,E}||E<-Current,not lists:member(E,Recorded)],
+    Created.
     
 diff(Ets,application,[start_stop]) ->    
     Running = application:which_applications(),
