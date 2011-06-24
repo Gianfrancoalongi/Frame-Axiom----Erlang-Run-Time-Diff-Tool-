@@ -1,0 +1,11 @@
+{application, frame_axiom,
+ [
+  {description, "Frame Axiom lib"},
+  {vsn, "0.1"},
+  {registered, []},
+  {applications, [
+                  kernel,
+                  stdlib
+                 ]},
+  {env, []}
+ ]}.
