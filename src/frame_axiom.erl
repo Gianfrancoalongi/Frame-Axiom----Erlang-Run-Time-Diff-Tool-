@@ -25,5 +25,5 @@ diff(Ets,application,[started]) ->
     Running = application:which_applications(),
     [{application,Recorded}] = ets:lookup(Ets,application),
     Started = [{started,hd(tuple_to_list(App))} ||App <- Running, not lists:member(App,Recorded)],
-    Started.
-    
+    Stopped = [{stopped,hd(tuple_to_list(App))} ||App <- Recorded, not lists:member(App,Running)],
+    Started++Stopped.

@@ -25,4 +25,10 @@ application_creation_diff_test() ->
     application:start(sasl),
     ?assertEqual([{started,sasl}],frame_axiom:diff(Ref,application,[started])),
     application:stop(sasl).
-		      
+
+application_stop_diff_test() ->
+    application:start(sasl),
+    Ref = frame_axiom:snapshot(application),
+    application:stop(sasl),
+    ?assertEqual([{stopped,sasl}],frame_axiom:diff(Ref,application,[started])).
+
