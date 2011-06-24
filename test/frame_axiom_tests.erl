@@ -38,3 +38,9 @@ application_stop_diff_test() ->
 application_no_change_diff_test() ->
     Ref = frame_axiom:snapshot(application),
     ?assertEqual([],frame_axiom:diff(Ref,application,[start_stop])).
+
+application_load_diff_test() ->
+    application:unload(sasl),
+    Ref = frame_axiom:snapshot(application),
+    application:load(sasl),
+    ?assertEqual([{loaded,sasl}],frame_axiom:diff(Ref,application,[load_unload])).

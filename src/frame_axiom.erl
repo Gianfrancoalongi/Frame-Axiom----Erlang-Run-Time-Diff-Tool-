@@ -14,7 +14,8 @@ snapshot(process) ->
 snapshot(application) ->
     Ets = ets:new(application,[private]),
     Running = application:which_applications(),
-    ets:insert(Ets,{application,Running}),
+    Loaded = application:loaded_applications(),
+    ets:insert(Ets,{application,Running,Loaded}),
     Ets.    
 
 diff(Ets,process) ->
@@ -26,7 +27,13 @@ diff(Ets,process) ->
     
 diff(Ets,application,[start_stop]) ->    
     Running = application:which_applications(),
-    [{application,Recorded}] = ets:lookup(Ets,application),
+    [{application,Recorded,_}] = ets:lookup(Ets,application),
     Started = [{started,hd(tuple_to_list(App))} ||App <- Running, not lists:member(App,Recorded)],
     Stopped = [{stopped,hd(tuple_to_list(App))} ||App <- Recorded, not lists:member(App,Running)],
-    Started++Stopped.
+    Started++Stopped;
+diff(Ets,application,[load_unload]) ->    
+    Loaded = application:loaded_applications(),
+    [{application,_,Recorded}] = ets:lookup(Ets,application),
+    NewLoaded = [{loaded,hd(tuple_to_list(App))} ||App <- Loaded, not lists:member(App,Recorded)], 
+    NewLoaded.
+
