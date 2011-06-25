@@ -94,3 +94,12 @@ file_direct_under_creation_diff_test() ->
     FilePath = filename:join(Path,Name),
     ?assertEqual([{created,{file,FilePath}}],frame_axiom:diff(Ref,{dir,Path})),
     file:delete(FilePath).
+
+file_direct_under_deletion_diff_test() ->
+    Path = ".",
+    Name= "created_this.txt",
+    file:write_file(Name,"HelloWorld"),
+    Ref = frame_axiom:snapshot({dir,Path}),
+    FilePath = filename:join(Path,Name),
+    file:delete(FilePath),
+    ?assertEqual([{deleted,{file,FilePath}}],frame_axiom:diff(Ref,{dir,Path})).

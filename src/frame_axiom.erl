@@ -57,7 +57,8 @@ diff(Ets,{dir,Path}) ->
     Current = collect(Path),
     [{{dir,Path},Recorded}] = ets:lookup(Ets,{dir,Path}),
     Created = [{created,S} || S <- Current, not lists:member(S,Recorded)],
-    Created.
+    Deleted = [{deleted,S} || S <- Recorded, not lists:member(S,Current)],
+    Created++Deleted.
 
 diff(Ets,application,[start_stop]) ->    
     Running = application:which_applications(),
