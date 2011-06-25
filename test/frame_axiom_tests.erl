@@ -117,4 +117,13 @@ file_directory_creation_test() ->
     ok = filelib:ensure_dir(FullPath++"/"),
     ?assertEqual([{created,{dir,FullPath}}],frame_axiom:diff(Ref,{dir,Path})),
     file:del_dir(FullPath).
+
+file_directory_deletion_test() ->
+    Path = ".",
+    Name= "this_dir",
+    FullPath = filename:join(Path,Name),
+    ok = filelib:ensure_dir(FullPath++"/"),
+    Ref = frame_axiom:snapshot({dir,Path}),
+    file:del_dir(FullPath),    
+    ?assertEqual([{deleted,{dir,FullPath}}],frame_axiom:diff(Ref,{dir,Path})).    
     
