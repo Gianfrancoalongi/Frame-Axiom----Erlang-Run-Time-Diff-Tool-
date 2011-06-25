@@ -103,3 +103,8 @@ file_direct_under_deletion_diff_test() ->
     FilePath = filename:join(Path,Name),
     file:delete(FilePath),
     ?assertEqual([{deleted,{file,FilePath}}],frame_axiom:diff(Ref,{dir,Path})).
+
+file_no_change_diff_test() ->
+    Path = ".",
+    Ref = frame_axiom:snapshot({dir,Path}),
+    ?assertEqual([],frame_axiom:diff(Ref,{dir,Path})).
