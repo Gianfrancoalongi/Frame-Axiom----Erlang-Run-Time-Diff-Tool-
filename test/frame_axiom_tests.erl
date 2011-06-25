@@ -75,3 +75,10 @@ ports_creation_diff_test() ->
     P = erlang:open_port({spawn,"cd"},[stream]),
     ?assertEqual([{opened,P}],frame_axiom:diff(Ref,port)),
     erlang:port_close(P).
+
+ports_closing_diff_test() ->
+    P = erlang:open_port({spawn,"cd"},[stream]),    
+    Ref = frame_axiom:snapshot(port),
+    erlang:port_close(P),
+    ?assertEqual([{closed,P}],frame_axiom:diff(Ref,port)).
+    

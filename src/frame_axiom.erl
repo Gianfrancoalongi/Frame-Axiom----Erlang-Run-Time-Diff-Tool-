@@ -43,10 +43,10 @@ diff(Ets,ets) ->
 diff(Ets,port) ->
     Ports = erlang:ports(),
     [{port,Recorded}] = ets:lookup(Ets,port),
-    Opened = [{opened,P}||P<-Ports,not lists:member(P,Recorded)],			  
-    Opened.
+    Opened = [{opened,P}||P<-Ports,not lists:member(P,Recorded)], 
+    Closed = [{closed,P}||P<-Recorded,not lists:member(P,Ports)], 
+    Opened++Closed.
 
-    
 diff(Ets,application,[start_stop]) ->    
     Running = application:which_applications(),
     [{application,Recorded,_}] = ets:lookup(Ets,application),
