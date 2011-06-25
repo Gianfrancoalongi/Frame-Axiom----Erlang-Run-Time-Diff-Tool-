@@ -1,0 +1,7 @@
+Frame Axiom : A run-time 2 point diff tool to ease testing of heavily side-effecting code.
+
+Status: In progress
+
+Examples: Check EUnit test in test/ dir
+
+Promise: I promise 100% test coverage and self-explaining EUnit tests
