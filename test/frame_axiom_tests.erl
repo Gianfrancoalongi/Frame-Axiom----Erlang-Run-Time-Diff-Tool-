@@ -70,3 +70,8 @@ ets_no_change_test() ->
     Ref = frame_axiom:snapshot(ets),
     ?assertEqual([],frame_axiom:diff(Ref,ets)).
 
+ports_creation_diff_test() ->
+    Ref = frame_axiom:snapshot(port),
+    P = erlang:open_port({spawn,"cd"},[stream]),
+    ?assertEqual([{opened,P}],frame_axiom:diff(Ref,port)),
+    erlang:port_close(P).

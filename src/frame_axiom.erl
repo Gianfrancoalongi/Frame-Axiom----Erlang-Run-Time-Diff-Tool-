@@ -21,6 +21,11 @@ snapshot(ets) ->
     Ets = ets:new(ets,[private]),
     Existing = ets:all(),
     ets:insert(Ets,{ets,Existing}),
+    Ets;
+snapshot(port) ->
+    Ets = ets:new(ets,[private]),
+    Existing = erlang:ports(),
+    ets:insert(Ets,{port,Existing}),
     Ets.
 
 diff(Ets,process) ->
@@ -34,7 +39,13 @@ diff(Ets,ets) ->
     [{ets,Recorded}] = ets:lookup(Ets,ets),
     Created = [{created,E}||E<-Current,not lists:member(E,Recorded)],
     Deleted = [{deleted,E}||E<-Recorded,not lists:member(E,Current)],
-    Created++Deleted.
+    Created++Deleted;
+diff(Ets,port) ->
+    Ports = erlang:ports(),
+    [{port,Recorded}] = ets:lookup(Ets,port),
+    Opened = [{opened,P}||P<-Ports,not lists:member(P,Recorded)],			  
+    Opened.
+
     
 diff(Ets,application,[start_stop]) ->    
     Running = application:which_applications(),
@@ -48,4 +59,5 @@ diff(Ets,application,[load_unload]) ->
     NewLoaded = [{loaded,hd(tuple_to_list(App))} ||App <- Loaded, not lists:member(App,Recorded)], 
     UnLoaded = [{unloaded,hd(tuple_to_list(App))} ||App <- Recorded, not lists:member(App,Loaded)],
     NewLoaded++UnLoaded.
+
 
