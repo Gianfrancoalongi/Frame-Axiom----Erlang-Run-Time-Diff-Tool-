@@ -5,7 +5,6 @@
 -export([snapshot/1]).
 -export([diff/2,
 	 diff/3]).
--export([collect/1]).
 
 snapshot(process) ->
     Ets = ets:new(process,[private]),
