@@ -108,3 +108,13 @@ file_no_change_diff_test() ->
     Path = ".",
     Ref = frame_axiom:snapshot({dir,Path}),
     ?assertEqual([],frame_axiom:diff(Ref,{dir,Path})).
+
+file_directory_creation_test() ->
+    Path = ".",
+    Name= "this_dir",
+    Ref = frame_axiom:snapshot({dir,Path}),
+    FullPath = filename:join(Path,Name),
+    ok = filelib:ensure_dir(FullPath++"/"),
+    ?assertEqual([{created,{dir,FullPath}}],frame_axiom:diff(Ref,{dir,Path})),
+    file:del_dir(FullPath).
+    
