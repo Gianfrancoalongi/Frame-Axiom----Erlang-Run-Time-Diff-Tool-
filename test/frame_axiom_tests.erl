@@ -85,5 +85,12 @@ ports_closing_diff_test() ->
 ports_no_change_diff_test() ->
     Ref = frame_axiom:snapshot(port),
     ?assertEqual([],frame_axiom:diff(Ref,port)).
-    
-    
+
+file_direct_under_creation_diff_test() ->
+    Path = ".",
+    Ref = frame_axiom:snapshot({dir,Path}),
+    Name= "created_this.txt",
+    file:write_file(Name,"HelloWorld"),
+    FilePath = filename:join(Path,Name),
+    ?assertEqual([{created,{file,FilePath}}],frame_axiom:diff(Ref,{dir,Path})),
+    file:delete(FilePath).

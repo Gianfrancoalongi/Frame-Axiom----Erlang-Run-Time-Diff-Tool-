@@ -5,6 +5,7 @@
 -export([snapshot/1]).
 -export([diff/2,
 	 diff/3]).
+-export([collect/1]).
 
 snapshot(process) ->
     Ets = ets:new(process,[private]),
@@ -26,7 +27,13 @@ snapshot(port) ->
     Ets = ets:new(ets,[private]),
     Existing = erlang:ports(),
     ets:insert(Ets,{port,Existing}),
+    Ets;
+snapshot({dir,Path}) ->
+    Ets = ets:new(ets,[private]),
+    Structure = collect(Path),
+    ets:insert(Ets,{{dir,Path},Structure}),
     Ets.
+
 
 diff(Ets,process) ->
     Processes = erlang:processes(),
@@ -45,7 +52,12 @@ diff(Ets,port) ->
     [{port,Recorded}] = ets:lookup(Ets,port),
     Opened = [{opened,P}||P<-Ports,not lists:member(P,Recorded)], 
     Closed = [{closed,P}||P<-Recorded,not lists:member(P,Ports)], 
-    Opened++Closed.
+    Opened++Closed;
+diff(Ets,{dir,Path}) ->
+    Current = collect(Path),
+    [{{dir,Path},Recorded}] = ets:lookup(Ets,{dir,Path}),
+    Created = [{created,S} || S <- Current, not lists:member(S,Recorded)],
+    Created.
 
 diff(Ets,application,[start_stop]) ->    
     Running = application:which_applications(),
@@ -61,3 +73,13 @@ diff(Ets,application,[load_unload]) ->
     NewLoaded++UnLoaded.
 
 
+
+collect(Path) ->
+    case filelib:is_dir(Path) of
+	true ->
+	    {ok,Files} = file:list_dir(Path),
+	    [{dir,Path}|lists:foldl(fun(F,Acc)->collect(F)++Acc end,[],
+			      [filename:join(Path,File)||File<-Files])];
+	false ->
+	    [{file,Path}]
+    end.
