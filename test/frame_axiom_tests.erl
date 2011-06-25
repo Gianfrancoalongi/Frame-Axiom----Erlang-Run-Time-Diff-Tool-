@@ -81,4 +81,9 @@ ports_closing_diff_test() ->
     Ref = frame_axiom:snapshot(port),
     erlang:port_close(P),
     ?assertEqual([{closed,P}],frame_axiom:diff(Ref,port)).
+
+ports_no_change_diff_test() ->
+    Ref = frame_axiom:snapshot(port),
+    ?assertEqual([],frame_axiom:diff(Ref,port)).
+    
     
