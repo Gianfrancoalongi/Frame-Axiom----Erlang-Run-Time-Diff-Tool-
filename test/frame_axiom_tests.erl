@@ -175,3 +175,7 @@ multiple_type_mixed_test() ->
 		 ],
 		 frame_axiom:diff(Ref,[process,ets])),
     Pid ! die.
+
+multiple_type_no_change_test() ->
+    Ref = frame_axiom:snapshot([process,ets]),
+    ?assertEqual([{process,[]},{ets,[]}],frame_axiom:diff(Ref,[process,ets])).
