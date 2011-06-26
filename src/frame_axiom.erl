@@ -85,8 +85,8 @@ diff(Ets,node) ->
 diff(Ets,named_process) ->
     Current = named_processes(),
     [{named_process,Recorded}] = ets:lookup(Ets,named_process),
-    Created = [{created,N}||N<-Current,not lists:member(N,Recorded)],
-    Created.
+    {Created,Deleted} = split(created,died,Current,Recorded),
+    Created++Deleted.
 
 diff(Ets,application,[start_stop]) -> 
     Running = application:which_applications(),

@@ -231,3 +231,13 @@ named_process_creation_diff_test() ->
     ?assertEqual([{created,this_named}],frame_axiom:diff(Ref,named_process)),
     Pid ! die.
 
+named_process_dying_diff_test() ->
+    Pid = spawn_link(fun() -> register(this_named,self()), receive _ -> ok end end),
+    Ref = frame_axiom:snapshot(named_process),    
+    Pid ! die,
+    receive
+	{'EXIT',Pid,normal} -> ok
+    end,
+    ?assertEqual([{died,this_named}],frame_axiom:diff(Ref,named_process)).
+    
+
