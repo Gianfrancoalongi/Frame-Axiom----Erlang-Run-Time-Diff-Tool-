@@ -195,7 +195,6 @@ node_connected_diff_test() ->
     ensure_empd(),
     net_kernel:start([box_box,shortnames]),
     Ref = frame_axiom:snapshot(node),
-    Host = inet_db:gethostname(), 
     {ok,Node} = slave:start(list_to_atom(inet_db:gethostname()),'slave'),
     ?assertEqual([{connected,Node}],frame_axiom:diff(Ref,node)),
     slave:stop(Node),
@@ -204,7 +203,6 @@ node_connected_diff_test() ->
 node_disconnected_diff_test() ->
     ensure_empd(),
     net_kernel:start([box_box,shortnames]),
-    Host = inet_db:gethostname(), 
     {ok,Node} = slave:start(list_to_atom(inet_db:gethostname()),'slave'),
     Ref = frame_axiom:snapshot(node),
     slave:stop(Node),
@@ -219,3 +217,9 @@ ensure_empd() ->
 	    os:cmd("epmd -daemon");
 	{nomatch,{match,_}} -> ok
     end.
+
+successive_snapshots_of_same_resets_test() ->    
+    Ref = frame_axiom:snapshot(ets),
+    EtsA= ets:new(a,[]),
+    frame_axiom:snapshot(Ref,ets),
+    ?assertEqual([],frame_axiom:diff(Ref,ets)).
