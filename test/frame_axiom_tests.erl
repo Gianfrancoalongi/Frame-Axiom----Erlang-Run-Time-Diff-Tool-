@@ -201,6 +201,16 @@ node_connected_diff_test() ->
     slave:stop(Node),
     net_kernel:stop().
 
+node_disconnected_diff_test() ->
+    ensure_empd(),
+    net_kernel:start([box_box,shortnames]),
+    Host = inet_db:gethostname(), 
+    {ok,Node} = slave:start(list_to_atom(inet_db:gethostname()),'slave'),
+    Ref = frame_axiom:snapshot(node),
+    slave:stop(Node),
+    ?assertEqual([{disconnected,Node}],frame_axiom:diff(Ref,node)),
+    net_kernel:stop().
+
 ensure_empd() ->
     EPMD = os:cmd("epmd -names"),
     case {re:run(EPMD,"epmd: Cannot connect to local epmd.*"),

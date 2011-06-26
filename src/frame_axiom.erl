@@ -81,7 +81,8 @@ diff(Ets,node) ->
     Current = nodes(),
     [{node,Recorded}] = ets:lookup(Ets,node),
     Connected = [{connected,N}||N<-Current,not lists:member(N,Recorded)],				
-    Connected.
+    Disconnected = [{disconnected,N}||N<-Recorded,not lists:member(N,Current)],
+    Connected++Disconnected.
 
 diff(Ets,application,[start_stop]) -> 
     Running = application:which_applications(),
