@@ -240,4 +240,7 @@ named_process_dying_diff_test() ->
     end,
     ?assertEqual([{died,this_named}],frame_axiom:diff(Ref,named_process)).
     
-
+named_process_no_diff_test() ->
+    Ref = frame_axiom:snapshot(named_process),    
+    ?assertEqual([],frame_axiom:diff(Ref,named_process)).
+    
