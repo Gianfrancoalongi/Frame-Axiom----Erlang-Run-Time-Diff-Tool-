@@ -6,34 +6,45 @@
 -export([diff/2,
 	 diff/3]).
 
-snapshot(process) ->
-    Ets = ets:new(process,[private]),
+snapshot({dir,Path}) -> 
+    snapshot(ets:new(snapshot,[private]),{dir,Path});
+snapshot(SnapShot) when SnapShot == process;
+			SnapShot == application;
+			SnapShot == ets;
+			SnapShot == port ->
+    snapshot(ets:new(snapshot,[private]),SnapShot);
+snapshot(SnapShots) when is_list(SnapShots) ->
+    lists:foldl(fun(SnapShot,Ets) -> snapshot(Ets,SnapShot)
+		end,ets:new(snapshot,[private]),SnapShots).
+
+snapshot(Ets,process) ->
     Processes = erlang:processes(),
     ets:insert(Ets,{process,Processes}),
     Ets;
-snapshot(application) ->
-    Ets = ets:new(application,[private]),
+snapshot(Ets,application) ->
     Running = application:which_applications(),
     Loaded = application:loaded_applications(),
     ets:insert(Ets,{application,Running,Loaded}),
     Ets;
-snapshot(ets) ->
-    Ets = ets:new(ets,[private]),
+snapshot(Ets,ets) ->
     Existing = ets:all(),
     ets:insert(Ets,{ets,Existing}),
     Ets;
-snapshot(port) ->
-    Ets = ets:new(ets,[private]),
+snapshot(Ets,port) ->
     Existing = erlang:ports(),
     ets:insert(Ets,{port,Existing}),
     Ets;
-snapshot({dir,Path}) ->
-    Ets = ets:new(ets,[private]),
+snapshot(Ets,{dir,Path}) ->
     Structure = collect(Path),
     ets:insert(Ets,{{dir,Path},Structure}),
     Ets.
 
 
+diff(Ets,DiffSpecs) when is_list(DiffSpecs) ->
+    lists:foldl(fun(DiffSpec,Res) -> 
+			Key = diffspec_key(DiffSpec),
+			Res++[{Key,diff(Ets,DiffSpec)}]
+		end,[],DiffSpecs);
 diff(Ets,process) ->
     Processes = erlang:processes(),
     [{process,Recorded}] = ets:lookup(Ets,process),
@@ -57,9 +68,11 @@ diff(Ets,{dir,Path}) ->
     [{{dir,Path},Recorded}] = ets:lookup(Ets,{dir,Path}),
     Created = [{created,S} || S <- Current, not lists:member(S,Recorded)],
     Deleted = [{deleted,S} || S <- Recorded, not lists:member(S,Current)],
-    Created++Deleted.
+    Created++Deleted;
+diff(Ets,{application,[start_stop]}) ->
+    diff(Ets,application,[start_stop]).
 
-diff(Ets,application,[start_stop]) ->    
+diff(Ets,application,[start_stop]) -> 
     Running = application:which_applications(),
     [{application,Recorded,_}] = ets:lookup(Ets,application),
     Started = [{started,hd(tuple_to_list(App))} ||App <- Running, not lists:member(App,Recorded)],
@@ -83,3 +96,7 @@ collect(Path) ->
 	false ->
 	    [{file,Path}]
     end.
+
+diffspec_key({application,_}) ->
+    application;
+diffspec_key(X) -> X.

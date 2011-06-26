@@ -127,3 +127,19 @@ file_directory_deletion_test() ->
     file:del_dir(FullPath),    
     ?assertEqual([{deleted,{dir,FullPath}}],frame_axiom:diff(Ref,{dir,Path})).    
     
+multiple_type_creation_test() ->
+    Ref = frame_axiom:snapshot([process,application,ets]),
+    Pid = spawn_link(fun() -> receive _ -> ok end end),
+    application:start(snmp),
+    Ets = ets:new(created,[]),
+    ?assertMatch([
+		  {process,[{created,Pid},_,_,_]},
+		  {application,[{started,snmp}]},
+		  {ets,[{created,Ets}]}
+		 ],
+		 frame_axiom:diff(Ref,[process,
+				       {application,[start_stop]},
+				       ets])),
+    application:stop(snmp),
+    ets:delete(Ets),
+    Pid ! die.
