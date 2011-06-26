@@ -164,3 +164,14 @@ multiple_type_deletion_test() ->
 				       {application,[start_stop]},
 				       ets])).
     
+multiple_type_mixed_test() ->
+    Ets = ets:new(created,[]),
+    Ref = frame_axiom:snapshot([process,ets]),
+    Pid = spawn_link(fun() -> receive _ -> ok end end),
+    ets:delete(Ets),
+    ?assertMatch([
+		  {process,[{created,Pid}]},
+		  {ets,[{deleted,Ets}]}
+		 ],
+		 frame_axiom:diff(Ref,[process,ets])),
+    Pid ! die.
