@@ -220,6 +220,14 @@ ensure_empd() ->
 
 successive_snapshots_of_same_resets_test() ->    
     Ref = frame_axiom:snapshot(ets),
-    EtsA= ets:new(a,[]),
+    Ets = ets:new(a,[]),
     frame_axiom:snapshot(Ref,ets),
-    ?assertEqual([],frame_axiom:diff(Ref,ets)).
+    ?assertEqual([],frame_axiom:diff(Ref,ets)),
+    ets:delete(Ets).
+
+named_process_creation_diff_test() ->
+    Ref = frame_axiom:snapshot(named_process),    
+    Pid = spawn_link(fun() -> register(this_named,self()), receive _ -> ok end end),
+    ?assertEqual([{created,this_named}],frame_axiom:diff(Ref,named_process)),
+    Pid ! die.
+

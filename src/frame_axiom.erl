@@ -13,7 +13,8 @@ snapshot(SnapShot) when SnapShot == process;
 			SnapShot == application;
 			SnapShot == ets;
 			SnapShot == port;
-			SnapShot == node ->
+			SnapShot == node;
+			SnapShot == named_process ->
     snapshot(ets:new(snapshot,[private]),SnapShot);
 snapshot(SnapShots) when is_list(SnapShots) ->
     lists:foldl(fun(SnapShot,Ets) -> snapshot(Ets,SnapShot)
@@ -43,8 +44,11 @@ snapshot(Ets,{dir,Path}) ->
 snapshot(Ets,node) ->
     Current = nodes(),
     ets:insert(Ets,{node,Current}),
+    Ets;
+snapshot(Ets,named_process) ->
+    Current = named_processes(),
+    ets:insert(Ets,{named_process,Current}),
     Ets.
-
 
 diff(Ets,DiffSpecs) when is_list(DiffSpecs) ->
     lists:foldl(fun(DiffSpec,Res) -> 
@@ -77,7 +81,12 @@ diff(Ets,node) ->
     Current = nodes(),
     [{node,Recorded}] = ets:lookup(Ets,node),
     {Connected,Disconnected} = split(connected,disconnected,Current,Recorded),
-    Connected++Disconnected.
+    Connected++Disconnected;
+diff(Ets,named_process) ->
+    Current = named_processes(),
+    [{named_process,Recorded}] = ets:lookup(Ets,named_process),
+    Created = [{created,N}||N<-Current,not lists:member(N,Recorded)],
+    Created.
 
 diff(Ets,application,[start_stop]) -> 
     Running = application:which_applications(),
@@ -111,3 +120,9 @@ diffspec_key(X) -> X.
 split(KeyA,KeyB,As,Bs) ->
     {[{KeyA,A}||A<-As,not lists:member(A,Bs)],
      [{KeyB,B}||B<-Bs,not lists:member(B,As)]}.
+
+named_processes() ->
+    Procs = [erlang:process_info(P,registered_name)||P<-erlang:processes()],
+    lists:foldl(fun({registered_name,N},Acc) -> Acc++[N];
+		   (_,Acc) -> Acc 
+		end,[],Procs).
