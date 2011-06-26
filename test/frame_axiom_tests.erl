@@ -179,3 +179,14 @@ multiple_type_mixed_test() ->
 multiple_type_no_change_test() ->
     Ref = frame_axiom:snapshot([process,ets]),
     ?assertEqual([{process,[]},{ets,[]}],frame_axiom:diff(Ref,[process,ets])).
+
+second_snapshot_call_test() ->
+    Ref = frame_axiom:snapshot(ets),
+    Ets = ets:new(test,[]),
+    frame_axiom:snapshot(Ref,application),
+    application:start(snmp),
+    ?assertEqual([{ets,[{created,Ets}]},
+		  {application,[{started,snmp}]}
+		 ],
+		 frame_axiom:diff(Ref,[ets,{application,[start_stop]}])).
+    

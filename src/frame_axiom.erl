@@ -2,7 +2,8 @@
 %%% @copyright (C) 2011, Gianfranco
 %%% Created : 24 Jun 2011 by Gianfranco <zenon@zen.home>
 -module(frame_axiom).
--export([snapshot/1]).
+-export([snapshot/1,
+	 snapshot/2]).
 -export([diff/2,
 	 diff/3]).
 
