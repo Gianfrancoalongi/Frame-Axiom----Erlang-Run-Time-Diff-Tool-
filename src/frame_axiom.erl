@@ -54,34 +54,29 @@ diff(Ets,DiffSpecs) when is_list(DiffSpecs) ->
 diff(Ets,process) ->
     Processes = erlang:processes(),
     [{process,Recorded}] = ets:lookup(Ets,process),
-    Dead = [{died,P} || P <- Recorded, not lists:member(P,Processes)],
-    Created = [{created,P} || P <- Processes, not lists:member(P,Recorded)],
+    {Dead,Created} = split(created,died,Processes,Recorded),
     Dead++Created;
 diff(Ets,ets) ->
     Current = ets:all(),
     [{ets,Recorded}] = ets:lookup(Ets,ets),
-    Created = [{created,E}||E<-Current,not lists:member(E,Recorded)],
-    Deleted = [{deleted,E}||E<-Recorded,not lists:member(E,Current)],
+    {Created,Deleted} = split(created,deleted,Current,Recorded),
     Created++Deleted;
 diff(Ets,port) ->
     Ports = erlang:ports(),
     [{port,Recorded}] = ets:lookup(Ets,port),
-    Opened = [{opened,P}||P<-Ports,not lists:member(P,Recorded)], 
-    Closed = [{closed,P}||P<-Recorded,not lists:member(P,Ports)], 
+    {Opened,Closed} = split(opened,closed,Ports,Recorded),
     Opened++Closed;
 diff(Ets,{dir,Path}) ->
     Current = collect(Path),
     [{{dir,Path},Recorded}] = ets:lookup(Ets,{dir,Path}),
-    Created = [{created,S} || S <- Current, not lists:member(S,Recorded)],
-    Deleted = [{deleted,S} || S <- Recorded, not lists:member(S,Current)],
+    {Created,Deleted} = split(created,deleted,Current,Recorded),
     Created++Deleted;
 diff(Ets,{application,[start_stop]}) ->
     diff(Ets,application,[start_stop]);
 diff(Ets,node) ->
     Current = nodes(),
     [{node,Recorded}] = ets:lookup(Ets,node),
-    Connected = [{connected,N}||N<-Current,not lists:member(N,Recorded)],				
-    Disconnected = [{disconnected,N}||N<-Recorded,not lists:member(N,Current)],
+    {Connected,Disconnected} = split(connected,disconnected,Current,Recorded),
     Connected++Disconnected.
 
 diff(Ets,application,[start_stop]) -> 
@@ -112,3 +107,7 @@ collect(Path) ->
 diffspec_key({application,_}) ->
     application;
 diffspec_key(X) -> X.
+
+split(KeyA,KeyB,As,Bs) ->
+    {[{KeyA,A}||A<-As,not lists:member(A,Bs)],
+     [{KeyB,B}||B<-Bs,not lists:member(B,As)]}.
