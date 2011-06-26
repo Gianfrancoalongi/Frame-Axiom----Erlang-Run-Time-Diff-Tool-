@@ -13,10 +13,7 @@ process_death_diff_test() ->
     process_flag(trap_exit,true),
     Pid = spawn_link(fun() -> receive _ -> ok end end),
     Ref = frame_axiom:snapshot(process),
-    Pid ! die,
-    receive
-	{'EXIT',Pid,normal} -> ok_died
-    end,
+    synchronoulsy_kill_process(Pid),
     ?assertEqual([{died,Pid}],frame_axiom:diff(Ref,process)).
 
 process_no_change_diff_test() ->
@@ -142,7 +139,7 @@ multiple_type_creation_test() ->
 				       ets])),
     application:stop(snmp),
     ets:delete(Ets),
-    Pid ! die.
+    synchronoulsy_kill_process(Pid).
 
 multiple_type_deletion_test() ->
     Pid = spawn_link(fun() -> receive _ -> ok end end),
@@ -151,10 +148,7 @@ multiple_type_deletion_test() ->
     Ref = frame_axiom:snapshot([process,application,ets]),
     application:stop(snmp),
     ets:delete(Ets),
-    Pid ! die,
-    receive
-	{'EXIT',Pid,normal} -> ok
-    end,
+    synchronoulsy_kill_process(Pid),
     ?assertMatch([
 		  {process,[{died,Pid},_,_,_]},
 		  {application,[{stopped,snmp}]},
@@ -174,7 +168,7 @@ multiple_type_mixed_test() ->
 		  {ets,[{deleted,Ets}]}
 		 ],
 		 frame_axiom:diff(Ref,[process,ets])),
-    Pid ! die.
+    synchronoulsy_kill_process(Pid).
 
 multiple_type_no_change_test() ->
     Ref = frame_axiom:snapshot([process,ets]),
@@ -208,15 +202,6 @@ node_disconnected_diff_test() ->
     slave:stop(Node),
     ?assertEqual([{disconnected,Node}],frame_axiom:diff(Ref,node)),
     net_kernel:stop().
-
-ensure_empd() ->
-    EPMD = os:cmd("epmd -names"),
-    case {re:run(EPMD,"epmd: Cannot connect to local epmd.*"),
-	  re:run(EPMD,"epmd: up and running on port .*")} of
-	{{match,_},nomatch} ->
-	    os:cmd("epmd -daemon");
-	{nomatch,{match,_}} -> ok
-    end.
 
 successive_snapshots_of_same_resets_test() ->    
     Ref = frame_axiom:snapshot(ets),
@@ -270,4 +255,13 @@ synchronoulsy_kill_process(Pid) ->
     receive 
 	{'EXIT',Pid,normal} ->
 	    ok
+    end.
+
+ensure_empd() ->
+    EPMD = os:cmd("epmd -names"),
+    case {re:run(EPMD,"epmd: Cannot connect to local epmd.*"),
+	  re:run(EPMD,"epmd: up and running on port .*")} of
+	{{match,_},nomatch} ->
+	    os:cmd("epmd -daemon");
+	{nomatch,{match,_}} -> ok
     end.
