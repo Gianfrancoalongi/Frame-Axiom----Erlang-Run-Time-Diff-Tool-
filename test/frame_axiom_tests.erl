@@ -190,3 +190,22 @@ second_snapshot_call_test() ->
 		 ],
 		 frame_axiom:diff(Ref,[ets,{application,[start_stop]}])).
     
+
+node_connected_diff_test() ->
+    ensure_empd(),
+    net_kernel:start([box_box,shortnames]),
+    Ref = frame_axiom:snapshot(node),
+    Host = inet_db:gethostname(), 
+    {ok,Node} = slave:start(list_to_atom(inet_db:gethostname()),'slave'),
+    ?assertEqual([{connected,Node}],frame_axiom:diff(Ref,node)),
+    slave:stop(Node),
+    net_kernel:stop().
+
+ensure_empd() ->
+    EPMD = os:cmd("epmd -names"),
+    case {re:run(EPMD,"epmd: Cannot connect to local epmd.*"),
+	  re:run(EPMD,"epmd: up and running on port .*")} of
+	{{match,_},nomatch} ->
+	    os:cmd("epmd -daemon");
+	{nomatch,{match,_}} -> ok
+    end.

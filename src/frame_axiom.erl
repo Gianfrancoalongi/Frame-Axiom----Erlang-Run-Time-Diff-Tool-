@@ -12,7 +12,8 @@ snapshot({dir,Path}) ->
 snapshot(SnapShot) when SnapShot == process;
 			SnapShot == application;
 			SnapShot == ets;
-			SnapShot == port ->
+			SnapShot == port;
+			SnapShot == node ->
     snapshot(ets:new(snapshot,[private]),SnapShot);
 snapshot(SnapShots) when is_list(SnapShots) ->
     lists:foldl(fun(SnapShot,Ets) -> snapshot(Ets,SnapShot)
@@ -38,6 +39,10 @@ snapshot(Ets,port) ->
 snapshot(Ets,{dir,Path}) ->
     Structure = collect(Path),
     ets:insert(Ets,{{dir,Path},Structure}),
+    Ets;
+snapshot(Ets,node) ->
+    Current = nodes(),
+    ets:insert(Ets,{node,Current}),
     Ets.
 
 
@@ -71,7 +76,12 @@ diff(Ets,{dir,Path}) ->
     Deleted = [{deleted,S} || S <- Recorded, not lists:member(S,Current)],
     Created++Deleted;
 diff(Ets,{application,[start_stop]}) ->
-    diff(Ets,application,[start_stop]).
+    diff(Ets,application,[start_stop]);
+diff(Ets,node) ->
+    Current = nodes(),
+    [{node,Recorded}] = ets:lookup(Ets,node),
+    Connected = [{connected,N}||N<-Current,not lists:member(N,Recorded)],				
+    Connected.
 
 diff(Ets,application,[start_stop]) -> 
     Running = application:which_applications(),
