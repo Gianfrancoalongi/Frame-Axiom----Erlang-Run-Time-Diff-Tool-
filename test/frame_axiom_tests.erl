@@ -227,20 +227,47 @@ successive_snapshots_of_same_resets_test() ->
 
 named_process_creation_diff_test() ->
     Ref = frame_axiom:snapshot(named_process),    
-    Pid = spawn_link(fun() -> register(this_named,self()), receive _ -> ok end end),
-    ?assertEqual([{created,this_named}],frame_axiom:diff(Ref,named_process)),
-    Pid ! die.
+    Pid = synchronoulsy_start_named(named_process_a),
+    ?assertEqual([{created,named_process_a}],frame_axiom:diff(Ref,named_process)),
+    synchronoulsy_kill_process(Pid).
 
 named_process_dying_diff_test() ->
-    Pid = spawn_link(fun() -> register(this_named,self()), receive _ -> ok end end),
+    Pid = synchronoulsy_start_named(named_process_b),
     Ref = frame_axiom:snapshot(named_process),    
-    Pid ! die,
-    receive
-	{'EXIT',Pid,normal} -> ok
-    end,
-    ?assertEqual([{died,this_named}],frame_axiom:diff(Ref,named_process)).
+    synchronoulsy_kill_process(Pid),
+    ?assertEqual([{died,named_process_b}],frame_axiom:diff(Ref,named_process)).
     
 named_process_no_diff_test() ->
     Ref = frame_axiom:snapshot(named_process),    
     ?assertEqual([],frame_axiom:diff(Ref,named_process)).
     
+named_process_replaced_diff_test() ->
+    Pid = synchronoulsy_start_named(named_process_c),
+    Ref = frame_axiom:snapshot(named_process),    
+    synchronoulsy_kill_process(Pid),
+    Pid2 = synchronoulsy_start_named(named_process_c),
+    ?assertEqual([{replaced,named_process_c}],frame_axiom:diff(Ref,named_process)),
+    synchronoulsy_kill_process(Pid2).
+
+
+%% -----------------------------------------------------------------------------
+synchronoulsy_start_named(Name) ->
+    SharedSecret = make_ref(),
+    Master = self(),
+    Pid = spawn_link(fun() ->
+			     register(Name,self()),
+			     Master ! SharedSecret,
+			     receive _ -> ok end
+		     end),				      
+    receive 
+	SharedSecret ->
+	    ok
+    end,
+    Pid.
+
+synchronoulsy_kill_process(Pid) ->
+    Pid ! die,
+    receive 
+	{'EXIT',Pid,normal} ->
+	    ok
+    end.

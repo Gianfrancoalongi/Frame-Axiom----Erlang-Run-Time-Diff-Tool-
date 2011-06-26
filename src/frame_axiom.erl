@@ -85,8 +85,11 @@ diff(Ets,node) ->
 diff(Ets,named_process) ->
     Current = named_processes(),
     [{named_process,Recorded}] = ets:lookup(Ets,named_process),
-    {Created,Deleted} = split(created,died,Current,Recorded),
-    Created++Deleted.
+    Replaced = [{replaced,Name}||{Pid,Name}<-Current,
+				 proplists:get_value(Pid,Recorded) == undefined andalso 
+				     lists:keyfind(Name,2,Recorded) =/= false],
+    {Created,Deleted} = split(created,died,[C||{_,C}<-Current],[R||{_,R}<-Recorded]),
+    Created++Deleted++Replaced.
 
 diff(Ets,application,[start_stop]) -> 
     Running = application:which_applications(),
@@ -122,7 +125,7 @@ split(KeyA,KeyB,As,Bs) ->
      [{KeyB,B}||B<-Bs,not lists:member(B,As)]}.
 
 named_processes() ->
-    Procs = [erlang:process_info(P,registered_name)||P<-erlang:processes()],
-    lists:foldl(fun({registered_name,N},Acc) -> Acc++[N];
+    Procs = [{P,erlang:process_info(P,registered_name)}||P<-erlang:processes()],
+    lists:foldl(fun({P,{registered_name,N}},Acc) -> Acc++[{P,N}];
 		   (_,Acc) -> Acc 
 		end,[],Procs).
