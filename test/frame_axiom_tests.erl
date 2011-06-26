@@ -25,31 +25,31 @@ process_no_change_diff_test() ->
 
 application_creation_diff_test() ->
     Ref = frame_axiom:snapshot(application),
-    application:start(sasl),
-    ?assertEqual([{started,sasl}],frame_axiom:diff(Ref,application,[start_stop])),
-    application:stop(sasl).
+    application:start(snmp),
+    ?assertEqual([{started,snmp}],frame_axiom:diff(Ref,application,[start_stop])),
+    application:stop(snmp).
 
 application_stop_diff_test() ->
-    application:start(sasl),
+    application:start(snmp),
     Ref = frame_axiom:snapshot(application),
-    application:stop(sasl),
-    ?assertEqual([{stopped,sasl}],frame_axiom:diff(Ref,application,[start_stop])).
+    application:stop(snmp),
+    ?assertEqual([{stopped,snmp}],frame_axiom:diff(Ref,application,[start_stop])).
 
 application_no_change_diff_test() ->
     Ref = frame_axiom:snapshot(application),
     ?assertEqual([],frame_axiom:diff(Ref,application,[start_stop])).
 
 application_load_diff_test() ->
-    application:unload(sasl),
+    application:unload(snmp),
     Ref = frame_axiom:snapshot(application),
-    application:load(sasl),
-    ?assertEqual([{loaded,sasl}],frame_axiom:diff(Ref,application,[load_unload])).
+    application:load(snmp),
+    ?assertEqual([{loaded,snmp}],frame_axiom:diff(Ref,application,[load_unload])).
 
 application_unload_diff_test() ->
-    application:load(sasl),
+    application:load(snmp),
     Ref = frame_axiom:snapshot(application),
-    application:unload(sasl),
-    ?assertEqual([{unloaded,sasl}],frame_axiom:diff(Ref,application,[load_unload])).
+    application:unload(snmp),
+    ?assertEqual([{unloaded,snmp}],frame_axiom:diff(Ref,application,[load_unload])).
 
 application_load_no_change_diff_test() ->
     Ref = frame_axiom:snapshot(application),
