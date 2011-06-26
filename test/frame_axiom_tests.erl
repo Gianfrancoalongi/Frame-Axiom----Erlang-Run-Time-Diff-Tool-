@@ -143,3 +143,24 @@ multiple_type_creation_test() ->
     application:stop(snmp),
     ets:delete(Ets),
     Pid ! die.
+
+multiple_type_deletion_test() ->
+    Pid = spawn_link(fun() -> receive _ -> ok end end),
+    application:start(snmp),
+    Ets = ets:new(created,[]),
+    Ref = frame_axiom:snapshot([process,application,ets]),
+    application:stop(snmp),
+    ets:delete(Ets),
+    Pid ! die,
+    receive
+	{'EXIT',Pid,normal} -> ok
+    end,
+    ?assertMatch([
+		  {process,[{died,Pid},_,_,_]},
+		  {application,[{stopped,snmp}]},
+		  {ets,[{deleted,Ets}]}
+		 ],
+		 frame_axiom:diff(Ref,[process,
+				       {application,[start_stop]},
+				       ets])).
+    
