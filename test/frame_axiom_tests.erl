@@ -25,6 +25,8 @@
 -module(frame_axiom_tests).
 -include_lib("eunit/include/eunit.hrl").
 
+%% process and named_process
+%% ---------------------------------------------------------
 process_creation_diff_test() ->
     Ref = frame_axiom:snapshot(process),
     Pid = spawn_link(fun() -> receive _ -> ok end end),
@@ -41,6 +43,32 @@ process_no_change_diff_test() ->
     Ref = frame_axiom:snapshot(process),
     ?assertEqual([],frame_axiom:diff(Ref,process)).
 
+named_process_creation_diff_test() ->
+    Ref = frame_axiom:snapshot(named_process),    
+    Pid = synchronoulsy_start_named(named_process_a),
+    ?assertEqual([{created,named_process_a}],frame_axiom:diff(Ref,named_process)),
+    synchronoulsy_kill_process(Pid).
+
+named_process_dying_diff_test() ->
+    Pid = synchronoulsy_start_named(named_process_b),
+    Ref = frame_axiom:snapshot(named_process),    
+    synchronoulsy_kill_process(Pid),
+    ?assertEqual([{died,named_process_b}],frame_axiom:diff(Ref,named_process)).
+    
+named_process_no_diff_test() ->
+    Ref = frame_axiom:snapshot(named_process),    
+    ?assertEqual([],frame_axiom:diff(Ref,named_process)).
+    
+named_process_replaced_diff_test() ->
+    Pid = synchronoulsy_start_named(named_process_c),
+    Ref = frame_axiom:snapshot(named_process),    
+    synchronoulsy_kill_process(Pid),
+    Pid2 = synchronoulsy_start_named(named_process_c),
+    ?assertEqual([{replaced,named_process_c}],frame_axiom:diff(Ref,named_process)),
+    synchronoulsy_kill_process(Pid2).
+
+%% application
+%%----------------------------------------------------------
 application_creation_diff_test() ->
     Ref = frame_axiom:snapshot(application),
     application:start(snmp),
@@ -73,6 +101,8 @@ application_load_no_change_diff_test() ->
     Ref = frame_axiom:snapshot(application),
     ?assertEqual([],frame_axiom:diff(Ref,application,[load_unload])).
 
+%% ets
+%% ---------------------------------------------------------
 ets_creation_diff_test() ->
     Ref = frame_axiom:snapshot(ets),
     New = ets:new(some,[]),
@@ -88,6 +118,8 @@ ets_no_change_test() ->
     Ref = frame_axiom:snapshot(ets),
     ?assertEqual([],frame_axiom:diff(Ref,ets)).
 
+%% port
+%% ---------------------------------------------------------
 ports_creation_diff_test() ->
     Ref = frame_axiom:snapshot(port),
     P = erlang:open_port({spawn,"cd"},[stream]),
@@ -104,6 +136,8 @@ ports_no_change_diff_test() ->
     Ref = frame_axiom:snapshot(port),
     ?assertEqual([],frame_axiom:diff(Ref,port)).
 
+%% file system
+%% ---------------------------------------------------------
 file_direct_under_creation_diff_test() ->
     Path = ".",
     Ref = frame_axiom:snapshot({dir,Path}),
@@ -144,7 +178,30 @@ file_directory_deletion_test() ->
     Ref = frame_axiom:snapshot({dir,Path}),
     file:del_dir(FullPath),    
     ?assertEqual([{deleted,{dir,FullPath}}],frame_axiom:diff(Ref,{dir,Path})).    
-    
+
+%% node 
+%% ---------------------------------------------------------
+node_connected_diff_test() ->
+    ensure_empd(),
+    net_kernel:start([box_box,shortnames]),
+    Ref = frame_axiom:snapshot(node),
+    {ok,Node} = slave:start(list_to_atom(inet_db:gethostname()),'slave'),
+    ?assertEqual([{connected,Node}],frame_axiom:diff(Ref,node)),
+    slave:stop(Node),
+    net_kernel:stop().
+
+node_disconnected_diff_test() ->
+    ensure_empd(),
+    net_kernel:start([box_box,shortnames]),
+    {ok,Node} = slave:start(list_to_atom(inet_db:gethostname()),'slave'),
+    Ref = frame_axiom:snapshot(node),
+    slave:stop(Node),
+    ?assertEqual([{disconnected,Node}],frame_axiom:diff(Ref,node)),
+    net_kernel:stop().
+
+
+%% multiple type snapshot
+%% ---------------------------------------------------------
 multiple_type_creation_test() ->
     Ref = frame_axiom:snapshot([process,application,ets]),
     Pid = spawn_link(fun() -> receive _ -> ok end end),
@@ -195,6 +252,8 @@ multiple_type_no_change_test() ->
     Ref = frame_axiom:snapshot([process,ets]),
     ?assertEqual([{process,[]},{ets,[]}],frame_axiom:diff(Ref,[process,ets])).
 
+%% multiple calls to snapshot
+%% ---------------------------------------------------------
 second_snapshot_call_test() ->
     Ref = frame_axiom:snapshot(ets),
     Ets = ets:new(test,[]),
@@ -206,24 +265,6 @@ second_snapshot_call_test() ->
 		 frame_axiom:diff(Ref,[ets,{application,[start_stop]}])).
     
 
-node_connected_diff_test() ->
-    ensure_empd(),
-    net_kernel:start([box_box,shortnames]),
-    Ref = frame_axiom:snapshot(node),
-    {ok,Node} = slave:start(list_to_atom(inet_db:gethostname()),'slave'),
-    ?assertEqual([{connected,Node}],frame_axiom:diff(Ref,node)),
-    slave:stop(Node),
-    net_kernel:stop().
-
-node_disconnected_diff_test() ->
-    ensure_empd(),
-    net_kernel:start([box_box,shortnames]),
-    {ok,Node} = slave:start(list_to_atom(inet_db:gethostname()),'slave'),
-    Ref = frame_axiom:snapshot(node),
-    slave:stop(Node),
-    ?assertEqual([{disconnected,Node}],frame_axiom:diff(Ref,node)),
-    net_kernel:stop().
-
 successive_snapshots_of_same_resets_test() ->    
     Ref = frame_axiom:snapshot(ets),
     Ets = ets:new(a,[]),
@@ -231,31 +272,8 @@ successive_snapshots_of_same_resets_test() ->
     ?assertEqual([],frame_axiom:diff(Ref,ets)),
     ets:delete(Ets).
 
-named_process_creation_diff_test() ->
-    Ref = frame_axiom:snapshot(named_process),    
-    Pid = synchronoulsy_start_named(named_process_a),
-    ?assertEqual([{created,named_process_a}],frame_axiom:diff(Ref,named_process)),
-    synchronoulsy_kill_process(Pid).
 
-named_process_dying_diff_test() ->
-    Pid = synchronoulsy_start_named(named_process_b),
-    Ref = frame_axiom:snapshot(named_process),    
-    synchronoulsy_kill_process(Pid),
-    ?assertEqual([{died,named_process_b}],frame_axiom:diff(Ref,named_process)).
-    
-named_process_no_diff_test() ->
-    Ref = frame_axiom:snapshot(named_process),    
-    ?assertEqual([],frame_axiom:diff(Ref,named_process)).
-    
-named_process_replaced_diff_test() ->
-    Pid = synchronoulsy_start_named(named_process_c),
-    Ref = frame_axiom:snapshot(named_process),    
-    synchronoulsy_kill_process(Pid),
-    Pid2 = synchronoulsy_start_named(named_process_c),
-    ?assertEqual([{replaced,named_process_c}],frame_axiom:diff(Ref,named_process)),
-    synchronoulsy_kill_process(Pid2).
-
-
+%% helpers
 %% -----------------------------------------------------------------------------
 synchronoulsy_start_named(Name) ->
     SharedSecret = make_ref(),
