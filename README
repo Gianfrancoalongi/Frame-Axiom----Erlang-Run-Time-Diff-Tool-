@@ -5,3 +5,5 @@ Status: In progress
 Examples: Check EUnit test in test/ dir
 
 Promise: I promise 100% test coverage and self-explaining EUnit tests
+
+License: New BSD License [3 clause License]
