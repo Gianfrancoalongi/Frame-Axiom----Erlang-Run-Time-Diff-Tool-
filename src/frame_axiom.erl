@@ -96,8 +96,8 @@ diff(Ets,{dir,Path}) ->
     [{{dir,Path},Recorded}] = ets:lookup(Ets,{dir,Path}),
     {Created,Deleted} = split(created,deleted,Current,Recorded),
     Created++Deleted;
-diff(Ets,{application,[start_stop]}) ->
-    diff(Ets,application,[start_stop]);
+diff(Ets,{application,DiffSpec}) ->
+    diff(Ets,application,DiffSpec);
 diff(Ets,node) ->
     Current = nodes(),
     [{node,Recorded}] = ets:lookup(Ets,node),
@@ -112,13 +112,16 @@ diff(Ets,named_process) ->
     {Created,Deleted} = split(created,died,[C||{_,C}<-Current],[R||{_,R}<-Recorded]),
     Created++Deleted++Replaced.
 
-diff(Ets,application,[start_stop]) -> 
+diff(Ets,application,Modes) when is_list(Modes) ->
+    lists:foldl(fun(Mode,Acc) -> Acc++diff(Ets,application,Mode) end,[],Modes);
+
+diff(Ets,application,start_stop) -> 
     Running = application:which_applications(),
     [{application,Recorded,_}] = ets:lookup(Ets,application),
     Started = [{started,hd(tuple_to_list(App))} ||App <- Running, not lists:member(App,Recorded)],
     Stopped = [{stopped,hd(tuple_to_list(App))} ||App <- Recorded, not lists:member(App,Running)],
     Started++Stopped;
-diff(Ets,application,[load_unload]) ->
+diff(Ets,application,load_unload) ->
     Loaded = application:loaded_applications(),
     [{application,_,Recorded}] = ets:lookup(Ets,application),
     NewLoaded = [{loaded,hd(tuple_to_list(App))} ||App <- Loaded, not lists:member(App,Recorded)], 

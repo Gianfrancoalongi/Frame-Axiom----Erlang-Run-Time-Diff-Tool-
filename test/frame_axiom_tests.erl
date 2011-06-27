@@ -72,34 +72,55 @@ named_process_replaced_diff_test() ->
 application_creation_diff_test() ->
     Ref = frame_axiom:snapshot(application),
     application:start(snmp),
-    ?assertEqual([{started,snmp}],frame_axiom:diff(Ref,application,[start_stop])),
+    ?assertEqual([{started,snmp}],frame_axiom:diff(Ref,application,start_stop)),
     application:stop(snmp).
 
 application_stop_diff_test() ->
     application:start(snmp),
     Ref = frame_axiom:snapshot(application),
     application:stop(snmp),
-    ?assertEqual([{stopped,snmp}],frame_axiom:diff(Ref,application,[start_stop])).
+    ?assertEqual([{stopped,snmp}],frame_axiom:diff(Ref,application,start_stop)).
 
 application_no_change_diff_test() ->
     Ref = frame_axiom:snapshot(application),
-    ?assertEqual([],frame_axiom:diff(Ref,application,[start_stop])).
+    ?assertEqual([],frame_axiom:diff(Ref,application,start_stop)).
 
 application_load_diff_test() ->
     application:unload(snmp),
     Ref = frame_axiom:snapshot(application),
     application:load(snmp),
-    ?assertEqual([{loaded,snmp}],frame_axiom:diff(Ref,application,[load_unload])).
+    ?assertEqual([{loaded,snmp}],frame_axiom:diff(Ref,application,load_unload)).
 
 application_unload_diff_test() ->
     application:load(snmp),
     Ref = frame_axiom:snapshot(application),
     application:unload(snmp),
-    ?assertEqual([{unloaded,snmp}],frame_axiom:diff(Ref,application,[load_unload])).
+    ?assertEqual([{unloaded,snmp}],frame_axiom:diff(Ref,application,load_unload)).
 
 application_load_no_change_diff_test() ->
     Ref = frame_axiom:snapshot(application),
-    ?assertEqual([],frame_axiom:diff(Ref,application,[load_unload])).
+    ?assertEqual([],frame_axiom:diff(Ref,application,load_unload)).
+
+application_load_and_start_diff_test() ->
+    Ref = frame_axiom:snapshot(application),
+    application:load(inets),
+    application:start(snmp),
+    ?assertEqual([{started,snmp},{loaded,inets},{loaded,snmp}],
+		 frame_axiom:diff(Ref,application,[start_stop,
+						   load_unload])),
+    application:stop(snmp),
+    application:unload(inets).
+
+application_unload_and_stop_diff_test() ->
+    application:load(inets),
+    application:start(snmp),
+    Ref = frame_axiom:snapshot(application),
+    application:stop(snmp),
+    application:unload(inets),
+    ?assertEqual([{stopped,snmp},{unloaded,inets}],
+		 frame_axiom:diff(Ref,application,[start_stop,
+						   load_unload])),
+    application:unload(snmp).
 
 %% ets
 %% ---------------------------------------------------------
@@ -214,7 +235,8 @@ multiple_type_creation_test() ->
 		 ],
 		 frame_axiom:diff(Ref,[process,
 				       {application,[start_stop]},
-				       ets])),
+				       ets
+				      ])),
     application:stop(snmp),
     ets:delete(Ets),
     synchronoulsy_kill_process(Pid).
