@@ -28,8 +28,9 @@
 -export([diff/2,
 	 diff/3]).
 
-snapshot({dir,Path}) -> 
-    snapshot(ets:new(snapshot,[private]),{dir,Path});
+snapshot({D,Path}) when D == dir_detailed ;
+			D == dir ->
+    snapshot(ets:new(snapshot,[private]),{D,Path});
 snapshot(SnapShot) when SnapShot == process;
 			SnapShot == application;
 			SnapShot == ets;
@@ -59,8 +60,12 @@ snapshot(Ets,port) ->
     ets:insert(Ets,{port,Existing}),
     Ets;
 snapshot(Ets,{dir,Path}) ->
-    Structure = collect(Path),
+    Structure = collect(false,Path),
     ets:insert(Ets,{{dir,Path},Structure}),
+    Ets;
+snapshot(Ets,{dir_detailed,Path}) ->
+    Structure = collect(true,Path),
+    ets:insert(Ets,{{dir_detailed,Path},Structure}),
     Ets;
 snapshot(Ets,node) ->
     Current = nodes(),
@@ -92,10 +97,15 @@ diff(Ets,port) ->
     {Opened,Closed} = split(opened,closed,Ports,Recorded),
     Opened++Closed;
 diff(Ets,{dir,Path}) ->
-    Current = collect(Path),
+    Current = collect(false,Path),
     [{{dir,Path},Recorded}] = ets:lookup(Ets,{dir,Path}),
     {Created,Deleted} = split(created,deleted,Current,Recorded),
     Created++Deleted;
+diff(Ets,{dir_detailed,Path}) ->
+    Current = collect(true,Path),
+    [{{dir_detailed,Path},Recorded}] = ets:lookup(Ets,{dir_detailed,Path}),
+    Changed = contents_changed(Recorded,Current),
+    Changed;
 diff(Ets,{application,DiffSpec}) ->
     diff(Ets,application,DiffSpec);
 diff(Ets,node) ->
@@ -128,16 +138,27 @@ diff(Ets,application,load_unload) ->
     UnLoaded = [{unloaded,hd(tuple_to_list(App))} ||App <- Recorded, not lists:member(App,Loaded)],
     NewLoaded++UnLoaded.
 
-
-
-collect(Path) ->
+%% Helpers section
+%% ----------------------------------------------------------
+collect(ExactP,Path) ->
     case filelib:is_dir(Path) of
 	true ->
 	    {ok,Files} = file:list_dir(Path),
-	    [{dir,Path}|lists:foldl(fun(F,Acc)->collect(F)++Acc end,[],
+	    Head = case ExactP of
+		       true -> {dir,Path,0};
+		       false ->{dir,Path}
+		   end,
+	    [Head|lists:foldl(fun(F,Acc)->collect(ExactP,F)++Acc end,[],
 			      [filename:join(Path,File)||File<-Files])];
 	false ->
-	    [{file,Path}]
+	    case ExactP of
+		true ->
+		    {ok,Bin} = file:read_file(Path),
+		    MD5 = crypto:md5(Bin),
+		    [{file,Path,MD5}];
+		false ->
+		    [{file,Path}]
+	    end
     end.
 
 diffspec_key({application,_}) ->
@@ -153,3 +174,15 @@ named_processes() ->
     lists:foldl(fun({P,{registered_name,N}},Acc) -> Acc++[{P,N}];
 		   (_,Acc) -> Acc 
 		end,[],Procs).
+
+contents_changed([{file,Path,MD5}|R],Current) ->
+    case lists:keyfind(Path,2,Current) of
+	false ->
+	    contents_changed(R,Current);
+	{file,Path,MD5} ->
+	    contents_changed(R,Current);
+	{file,Path,_} ->
+	    [{content_changed,Path}|contents_changed(R,Current)]
+    end;
+contents_changed([_|R],Current) -> contents_changed(R,Current);
+contents_changed([],Current) -> [].
