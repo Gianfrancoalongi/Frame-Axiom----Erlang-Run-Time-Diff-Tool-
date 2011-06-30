@@ -45,6 +45,9 @@ snapshot(SnapShots) when is_list(SnapShots) ->
 snapshot(Ets,{process,Options}) when is_list(Options) ->
     lists:foldl(fun(Option,EtsAcc) -> snapshot(EtsAcc,process,Option) 
 		end,Ets,Options);
+snapshot(Ets,{proces,all}) ->
+    snapshot(Ets,{process,[creation,death,received_messages,consumed_messages,
+			   creation_named,death_named,replaced_named]});
 
 snapshot(Ets,process) ->
     Processes = erlang:processes(),
