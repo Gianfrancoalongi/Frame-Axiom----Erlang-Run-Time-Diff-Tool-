@@ -87,6 +87,18 @@ snapshot(Ets,process,creation) ->
 snapshot(Ets,process,death) -> 
     Pids = erlang:processes(),
     ets:insert(Ets,{{process,death},Pids}),
+    Ets;
+snapshot(Ets,process,creation_named) -> 
+    Current = named_processes(),
+    ets:insert(Ets,{{process,creation_named},Current}),
+    Ets;
+snapshot(Ets,process,death_named) -> 
+    Current = named_processes(),
+    ets:insert(Ets,{{process,creation_death},Current}),
+    Ets;
+snapshot(Ets,process,replaced_named) -> 
+    Current = named_processes_with_pid(),
+    ets:insert(Ets,{{process,replaced_named},Current}),
     Ets.
 
 diff(Ets,[X]) -> 
@@ -164,7 +176,24 @@ diff(Ets,process,death) ->
     CurrentPids = erlang:processes(),
     Key = {process,death},
     [{Key,Recorded}] = ets:lookup(Ets,Key),
-    [{died,P}||P<-Recorded,not lists:member(P,CurrentPids)].
+    [{died,P}||P<-Recorded,not lists:member(P,CurrentPids)];
+diff(Ets,process,creation_named) ->
+    CurrentNamed = named_processes(),
+    Key = {process,creation_named},
+    [{Key,Recorded}] = ets:lookup(Ets,Key),
+    [{created,P}||P<-CurrentNamed,not lists:member(P,Recorded)];
+diff(Ets,process,death_named) ->
+    CurrentNamed = named_processes(),
+    Key = {process,creation_death},
+    [{Key,Recorded}] = ets:lookup(Ets,Key),
+    [{died,P}||P<-Recorded,not lists:member(P,CurrentNamed)];
+diff(Ets,process,replaced_named) ->
+    CurrentNamedWithPid = named_processes_with_pid(),
+    Key = {process,replaced_named},
+    [{Key,RecordedWithPid}] = ets:lookup(Ets,Key),
+    [{replaced,N}||{P,N} <- CurrentNamedWithPid,
+		   proplists:get_value(P,RecordedWithPid) == undefined andalso
+		       lists:keyfind(N,2,RecordedWithPid) =/= false].
 
 %% Helpers section
 %% ----------------------------------------------------------
@@ -199,9 +228,15 @@ split(KeyA,KeyB,As,Bs) ->
 
 named_processes() ->
     Procs = [{P,erlang:process_info(P,registered_name)}||P<-erlang:processes()],
-    lists:foldl(fun({P,{registered_name,N}},Acc) -> Acc++[{P,N}];
+    lists:foldl(fun({_,{registered_name,N}},Acc) -> Acc++[N];
 		   (_,Acc) -> Acc 
 		end,[],Procs).
+
+named_processes_with_pid() ->    
+    Procs = [{P,erlang:process_info(P,registered_name)}||P<-erlang:processes()],
+    lists:foldl(fun({P,{registered_name,N}},Acc) -> Acc++[{P,N}];
+    		   (_,Acc) -> Acc 
+    		end,[],Procs).
 
 contents_changed([{file,Path,MD5}|R],Current) ->
     case lists:keyfind(Path,2,Current) of
@@ -213,4 +248,4 @@ contents_changed([{file,Path,MD5}|R],Current) ->
 	    [{content_changed,Path}|contents_changed(R,Current)]
     end;
 contents_changed([_|R],Current) -> contents_changed(R,Current);
-contents_changed([],Current) -> [].
+contents_changed([],_) -> [].

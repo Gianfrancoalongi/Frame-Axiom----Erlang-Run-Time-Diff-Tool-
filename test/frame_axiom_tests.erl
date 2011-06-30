@@ -42,28 +42,31 @@ process_death_diff_test() ->
     ?assertEqual([{died,Pid}],frame_axiom:diff(Ref,[{process,Options}])).
 
 named_process_creation_diff_test() ->
-    Ref = frame_axiom:snapshot(named_process),    
+    Options = [creation_named],
+    Ref = frame_axiom:snapshot([{process,Options}]),
     Pid = synchronoulsy_start_named(named_process_a),
-    ?assertEqual([{created,named_process_a}],frame_axiom:diff(Ref,named_process)),
+    ?assertEqual([{created,named_process_a}],frame_axiom:diff(Ref,[{process,Options}])),
     synchronoulsy_kill_process(Pid).
 
 named_process_dying_diff_test() ->
+    Options = [death_named],
     Pid = synchronoulsy_start_named(named_process_b),
-    Ref = frame_axiom:snapshot(named_process),    
+    Ref = frame_axiom:snapshot([{process,Options}]),
     synchronoulsy_kill_process(Pid),
-    ?assertEqual([{died,named_process_b}],frame_axiom:diff(Ref,named_process)).
+    ?assertEqual([{died,named_process_b}],frame_axiom:diff(Ref,[{process,Options}])).
     
+named_process_replaced_diff_test() ->
+    Options = [replaced_named],
+    Pid = synchronoulsy_start_named(named_process_c),
+    Ref = frame_axiom:snapshot([{process,Options}]), 
+    synchronoulsy_kill_process(Pid),
+    Pid2 = synchronoulsy_start_named(named_process_c),
+    ?assertEqual([{replaced,named_process_c}],frame_axiom:diff(Ref,[{process,Options}])),
+    synchronoulsy_kill_process(Pid2).
+
 named_process_no_diff_test() ->
     Ref = frame_axiom:snapshot(named_process),    
     ?assertEqual([],frame_axiom:diff(Ref,named_process)).
-    
-named_process_replaced_diff_test() ->
-    Pid = synchronoulsy_start_named(named_process_c),
-    Ref = frame_axiom:snapshot(named_process),    
-    synchronoulsy_kill_process(Pid),
-    Pid2 = synchronoulsy_start_named(named_process_c),
-    ?assertEqual([{replaced,named_process_c}],frame_axiom:diff(Ref,named_process)),
-    synchronoulsy_kill_process(Pid2).
 
 process_no_change_diff_test() ->
     Ref = frame_axiom:snapshot(process),
