@@ -48,8 +48,7 @@ process_mailbox_received_test() ->
     Message = {iMessage,make_ref()},
     Pid ! Message,
     ?assertEqual([{received,Pid,[Message]}],
-		 frame_axiom:diff(Ref,[{process,Options}])),
-    synchronoulsy_kill_process(Pid).
+		 frame_axiom:diff(Ref,[{process,Options}])).
 
 process_consumed_messages_test() ->
     Options = [consumed_messages],
@@ -62,8 +61,7 @@ process_consumed_messages_test() ->
 	{Pid,consumed,Message} -> ok
     end,
     ?assertEqual([{consumed,Pid,[Message]}],
-		 frame_axiom:diff(Ref,[{process,Options}])),
-    synchronoulsy_kill_process(Pid).
+		 frame_axiom:diff(Ref,[{process,Options}])).
 
 
 named_process_creation_diff_test() ->
@@ -93,6 +91,44 @@ all_no_change_diff_test() ->
     Options = all,
     Ref = frame_axiom:snapshot([{process,Options}]),
     ?assertEqual([],frame_axiom:diff(Ref,[{process,Options}])).
+
+all_change_diff_test() ->
+    process_flag(trap_exit,true),
+    Options = all,
+    Killed = synchronoulsy_start_a_process(),
+    Received = synchronoulsy_start_a_process(),
+    Consumed = synchronoulsy_start_a_synchronous_consumer_process(),
+    ConsumedMessage = {cMessage,make_ref()},
+    ReceivedMessage = {rMessage,make_ref()},
+    Consumed ! ConsumedMessage,
+    Replaced = synchronoulsy_start_named(named_process_c),
+    DiedNamed = synchronoulsy_start_named(named_process_b),
+    Ref = frame_axiom:snapshot([{process,Options}]),
+    Started = synchronoulsy_start_a_process(),
+    Received ! ReceivedMessage,
+    synchronoulsy_kill_process(Killed),
+    synchronoulsy_kill_process(Replaced),
+    Replacer = synchronoulsy_start_named(named_process_c),
+    NamedCreated = synchronoulsy_start_named(named_process_a),
+    Consumed ! consume,
+    receive
+    	{Consumed,consumed,ConsumedMessage} -> ok
+    end,    
+    synchronoulsy_kill_process(DiedNamed),
+    ?assertEqual([{created,Started},
+		  {created,Replacer},
+		  {created,NamedCreated},
+		  {died,Killed},
+		  {died,Replaced},
+		  {died,DiedNamed},
+		  {received,Received,[ReceivedMessage]},
+		  {consumed,Consumed,[ConsumedMessage]},
+		  {created,named_process_a},
+		  {died,named_process_b},
+		  {replaced,named_process_c}
+		 ],
+		 frame_axiom:diff(Ref,[{process,Options}])).
+
 
 %% application
 %%----------------------------------------------------------
@@ -341,7 +377,7 @@ synchronoulsy_start_named(Name) ->
     Pid = spawn_link(fun() ->
 			     register(Name,self()),
 			     Master ! SharedSecret,
-			     receive _ -> ok end
+			     receive die -> ok end
 		     end),				      
     receive 
 	SharedSecret ->
@@ -365,19 +401,20 @@ synchronoulsy_start_a_process() ->
 synchronoulsy_start_a_synchronous_consumer_process() ->
     SharedSecret = make_ref(),
     Master = self(),
-    F = fun(F) ->
-		Master ! SharedSecret,
+    R = fun() -> Master ! SharedSecret end,
+    F = fun(F,T) ->
+		T(),
 		receive 
 		    die -> ok;
 		    consume ->
 			receive 
 			    X -> 
 				Master ! {self(),consumed,X}, 
-				F(F)
+				F(F,fun() -> ok end)
 			end
 		end
 	end,
-    Pid = spawn_link(fun() ->F(F)end), 
+    Pid = spawn_link(fun() ->F(F,R) end),
     receive 
 	SharedSecret ->
 	    ok

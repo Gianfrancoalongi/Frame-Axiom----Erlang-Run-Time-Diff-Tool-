@@ -201,9 +201,13 @@ diff(Ets,process,received_messages) ->
     lists:foldl(
       fun({RecPid,RecMessages},Acc) ->
 	      OldMessages = proplists:get_value(RecPid,MessagesWithPids),
-	      case [R||R<-OldMessages,not lists:member(R,RecMessages)] of
-		  [] -> Acc;
-		  X -> Acc++[{received,RecPid,X}]
+	      case OldMessages of
+		  undefined -> Acc;
+		  _ ->
+		      case [R||R<-OldMessages,not lists:member(R,RecMessages)] of
+			  [] -> Acc;
+			  X -> Acc++[{received,RecPid,X}]
+		      end
 	      end
       end,[],RecordedWithPid);
 diff(Ets,process,consumed_messages) ->
