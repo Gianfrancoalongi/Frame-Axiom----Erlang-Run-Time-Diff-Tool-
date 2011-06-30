@@ -147,10 +147,11 @@ application_stop_diff_test() ->
     ?assertEqual([{stopped,snmp}],frame_axiom:diff(Ref,[{application,Options}])).
 
 application_load_diff_test() ->
+    Options = [loaded],
     application:unload(snmp),
-    Ref = frame_axiom:snapshot(application),
+    Ref = frame_axiom:snapshot([{application,Options}]),
     application:load(snmp),
-    ?assertEqual([{loaded,snmp}],frame_axiom:diff(Ref,application,load_unload)).
+    ?assertEqual([{loaded,snmp}],frame_axiom:diff(Ref,[{application,Options}])).
 
 application_unload_diff_test() ->
     application:load(snmp),

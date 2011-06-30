@@ -115,7 +115,12 @@ snapshot(Ets,application,started) ->
 snapshot(Ets,application,stopped) -> 
     Running = [element(1,A)||A<-application:which_applications()],
     ets:insert(Ets,{{application,stopped},Running}),
+    Ets;
+snapshot(Ets,application,loaded) -> 
+    Loaded = [element(1,A)||A<-application:loaded_applications()],
+    ets:insert(Ets,{{application,loaded},Loaded}),
     Ets.
+    
     
 
 diff(Ets,[X]) -> 
@@ -242,7 +247,14 @@ diff(Ets,application,stopped) ->
     Running = [element(1,A)||A<-application:which_applications()],
     Key = {application,stopped},
     [{Key,Recorded}] = ets:lookup(Ets,Key),
-    [{stopped,S}||S<-Recorded,not lists:member(S,Running)].
+    [{stopped,S}||S<-Recorded,not lists:member(S,Running)];
+diff(Ets,application,loaded) ->
+    Loaded = [element(1,A)||A<-application:loaded_applications()],
+    Key = {application,loaded},
+    [{Key,Recorded}] = ets:lookup(Ets,Key),
+    [{loaded,L}||L<-Loaded,not lists:member(L,Recorded)].
+
+
 
 
 	      
