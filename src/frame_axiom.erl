@@ -76,10 +76,6 @@ snapshot(Ets,{dir_detailed,Path}) ->
 snapshot(Ets,node) ->
     Current = nodes(),
     ets:insert(Ets,{node,Current}),
-    Ets;
-snapshot(Ets,named_process) ->
-    Current = named_processes(),
-    ets:insert(Ets,{named_process,Current}),
     Ets.
 
 snapshot(Ets,process,creation) ->    
@@ -154,15 +150,7 @@ diff(Ets,node) ->
     Current = nodes(),
     [{node,Recorded}] = ets:lookup(Ets,node),
     {Connected,Disconnected} = split(connected,disconnected,Current,Recorded),
-    Connected++Disconnected;
-diff(Ets,named_process) ->
-    Current = named_processes(),
-    [{named_process,Recorded}] = ets:lookup(Ets,named_process),
-    Replaced = [{replaced,Name}||{Pid,Name}<-Current,
-				 proplists:get_value(Pid,Recorded) == undefined andalso 
-				     lists:keyfind(Name,2,Recorded) =/= false],
-    {Created,Deleted} = split(created,died,[C||{_,C}<-Current],[R||{_,R}<-Recorded]),
-    Created++Deleted++Replaced.
+    Connected++Disconnected.
 
 diff(Ets,application,Modes) when is_list(Modes) ->
     lists:foldl(fun(Mode,Acc) -> Acc++diff(Ets,application,Mode) end,[],Modes);
@@ -282,8 +270,6 @@ named_processes_with_pid() ->
 
 contents_changed([{file,Path,MD5}|R],Current) ->
     case lists:keyfind(Path,2,Current) of
-	false ->
-	    contents_changed(R,Current);
 	{file,Path,MD5} ->
 	    contents_changed(R,Current);
 	{file,Path,_} ->
