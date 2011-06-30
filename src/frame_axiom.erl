@@ -111,7 +111,12 @@ snapshot(Ets,process,consumed_messages) ->
 snapshot(Ets,application,started) -> 
     Running = [element(1,A)||A<-application:which_applications()],
     ets:insert(Ets,{{application,started},Running}),
+    Ets;
+snapshot(Ets,application,stopped) -> 
+    Running = [element(1,A)||A<-application:which_applications()],
+    ets:insert(Ets,{{application,stopped},Running}),
     Ets.
+    
 
 diff(Ets,[X]) -> 
     diff(Ets,X);
@@ -232,7 +237,13 @@ diff(Ets,application,started) ->
     Running = [element(1,A)||A<-application:which_applications()],
     Key = {application,started},
     [{Key,Recorded}] = ets:lookup(Ets,Key),
-    [{started,S}||S<-Running,not lists:member(S,Recorded)].
+    [{started,S}||S<-Running,not lists:member(S,Recorded)];
+diff(Ets,application,stopped) ->
+    Running = [element(1,A)||A<-application:which_applications()],
+    Key = {application,stopped},
+    [{Key,Recorded}] = ets:lookup(Ets,Key),
+    [{stopped,S}||S<-Recorded,not lists:member(S,Running)].
+
 
 	      
 
