@@ -48,7 +48,23 @@ process_mailbox_received_test() ->
     Message = {iMessage,make_ref()},
     Pid ! Message,
     ?assertEqual([{received,Pid,[Message]}],
-		 frame_axiom:diff(Ref,[{process,Options}])).
+		 frame_axiom:diff(Ref,[{process,Options}])),
+    synchronoulsy_kill_process(Pid).
+
+process_consumed_messages_test() ->
+    Options = [consumed_messages],
+    Pid = synchronoulsy_start_a_synchronous_consumer_process(),
+    Message = {iMessage,make_ref()},
+    Pid ! Message,
+    Ref = frame_axiom:snapshot([{process,Options}]),
+    Pid ! consume,
+    receive
+	{Pid,consumed,Message} -> ok
+    end,
+    ?assertEqual([{consumed,Pid,[Message]}],
+		 frame_axiom:diff(Ref,[{process,Options}])),
+    synchronoulsy_kill_process(Pid).
+
 
 named_process_creation_diff_test() ->
     Options = [creation_named],
@@ -345,6 +361,28 @@ synchronoulsy_start_a_process() ->
 			     Master ! SharedSecret,
 			     receive die -> ok end
 		     end),				      
+    receive 
+	SharedSecret ->
+	    ok
+    end,
+    Pid.
+    
+synchronoulsy_start_a_synchronous_consumer_process() ->
+    SharedSecret = make_ref(),
+    Master = self(),
+    F = fun(F) ->
+		Master ! SharedSecret,
+		receive 
+		    die -> ok;
+		    consume ->
+			receive 
+			    X -> 
+				Master ! {self(),consumed,X}, 
+				F(F)
+			end
+		end
+	end,
+    Pid = spawn_link(fun() ->F(F)end), 
     receive 
 	SharedSecret ->
 	    ok

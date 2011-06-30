@@ -103,6 +103,10 @@ snapshot(Ets,process,replaced_named) ->
 snapshot(Ets,process,received_messages) -> 
     MessagesWithPids = messages_with_pids(),
     ets:insert(Ets,{{process,received_messages},MessagesWithPids}),
+    Ets;
+snapshot(Ets,process,consumed_messages) -> 
+    MessagesWithPids = messages_with_pids(),
+    ets:insert(Ets,{{process,consumed_messages},MessagesWithPids}),
     Ets.
 
 diff(Ets,[X]) -> 
@@ -208,6 +212,18 @@ diff(Ets,process,received_messages) ->
 	      case [R||R<-OldMessages,not lists:member(R,RecMessages)] of
 		  [] -> Acc;
 		  X -> Acc++[{received,RecPid,X}]
+	      end
+      end,[],RecordedWithPid);
+diff(Ets,process,consumed_messages) ->
+    MessagesWithPids = messages_with_pids(),
+    Key = {process,consumed_messages},
+    [{Key,RecordedWithPid}] = ets:lookup(Ets,Key),
+    lists:foldl(
+      fun({RecPid,RecMessages},Acc) ->
+	      OldMessages = proplists:get_value(RecPid,MessagesWithPids),
+	      case [R||R<-RecMessages,not lists:member(R,OldMessages)] of
+		  [] -> Acc;
+		  X -> Acc++[{consumed,RecPid,X}]
 	      end
       end,[],RecordedWithPid).
 	      
