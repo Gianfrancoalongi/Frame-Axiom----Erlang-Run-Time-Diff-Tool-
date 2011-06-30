@@ -31,8 +31,7 @@
 snapshot({D,Path}) when D == dir_detailed ;
 			D == dir ->
     snapshot(ets:new(snapshot,[private]),{D,Path});
-snapshot(SnapShot) when SnapShot == process;
-			SnapShot == application;
+snapshot(SnapShot) when SnapShot == application;
 			SnapShot == ets;
 			SnapShot == port;
 			SnapShot == node;
