@@ -42,6 +42,10 @@ snapshot(SnapShots) when is_list(SnapShots) ->
     lists:foldl(fun(SnapShot,Ets) -> snapshot(Ets,SnapShot)
 		end,ets:new(snapshot,[private]),SnapShots).
 
+snapshot(Ets,{process,Options}) when is_list(Options) ->
+    lists:foldl(fun(Option,EtsAcc) -> snapshot(EtsAcc,process,Option) 
+		end,Ets,Options);
+
 snapshot(Ets,process) ->
     Processes = erlang:processes(),
     ets:insert(Ets,{process,Processes}),
@@ -76,11 +80,21 @@ snapshot(Ets,named_process) ->
     ets:insert(Ets,{named_process,Current}),
     Ets.
 
+snapshot(Ets,process,creation) ->    
+    Pids = erlang:processes(),
+    ets:insert(Ets,{{process,creation},Pids}),
+    Ets.
+
+diff(Ets,[X]) -> 
+    diff(Ets,X);
 diff(Ets,DiffSpecs) when is_list(DiffSpecs) ->
     lists:foldl(fun(DiffSpec,Res) -> 
 			Key = diffspec_key(DiffSpec),
 			Res++[{Key,diff(Ets,DiffSpec)}]
 		end,[],DiffSpecs);
+diff(Ets,{process,Options}) when is_list(Options) ->
+    lists:foldl(fun(Option,Res) -> Res++diff(Ets,process,Option) 
+		end,[],Options);
 diff(Ets,process) ->
     Processes = erlang:processes(),
     [{process,Recorded}] = ets:lookup(Ets,process),
@@ -136,7 +150,13 @@ diff(Ets,application,load_unload) ->
     [{application,_,Recorded}] = ets:lookup(Ets,application),
     NewLoaded = [{loaded,hd(tuple_to_list(App))} ||App <- Loaded, not lists:member(App,Recorded)], 
     UnLoaded = [{unloaded,hd(tuple_to_list(App))} ||App <- Recorded, not lists:member(App,Loaded)],
-    NewLoaded++UnLoaded.
+    NewLoaded++UnLoaded;
+diff(Ets,process,creation) ->
+    CurrentPids = erlang:processes(),
+    Key = {process,creation},
+    [{Key,Recorded}] = ets:lookup(Ets,Key),
+    [{created,P}||P<-CurrentPids,not lists:member(P,Recorded)].		  
+
 
 %% Helpers section
 %% ----------------------------------------------------------

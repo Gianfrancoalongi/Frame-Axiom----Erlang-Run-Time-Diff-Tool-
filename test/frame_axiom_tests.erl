@@ -28,9 +28,10 @@
 %% process and named_process
 %% ---------------------------------------------------------
 process_creation_diff_test() ->
-    Ref = frame_axiom:snapshot(process),
+    Options = [creation],
+    Ref = frame_axiom:snapshot([{process,Options}]),
     Pid = spawn_link(fun() -> receive _ -> ok end end),
-    ?assertEqual([{created,Pid}],frame_axiom:diff(Ref,process)).
+    ?assertEqual([{created,Pid}],frame_axiom:diff(Ref,[{process,Options}])).
 
 process_death_diff_test() ->
     process_flag(trap_exit,true),
