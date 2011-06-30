@@ -34,11 +34,12 @@ process_creation_diff_test() ->
     ?assertEqual([{created,Pid}],frame_axiom:diff(Ref,[{process,Options}])).
 
 process_death_diff_test() ->
+    Options = [death],
     process_flag(trap_exit,true),
     Pid = spawn_link(fun() -> receive _ -> ok end end),
-    Ref = frame_axiom:snapshot(process),
+    Ref = frame_axiom:snapshot([{process,Options}]),
     synchronoulsy_kill_process(Pid),
-    ?assertEqual([{died,Pid}],frame_axiom:diff(Ref,process)).
+    ?assertEqual([{died,Pid}],frame_axiom:diff(Ref,[{process,Options}])).
 
 process_no_change_diff_test() ->
     Ref = frame_axiom:snapshot(process),

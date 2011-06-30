@@ -83,6 +83,10 @@ snapshot(Ets,named_process) ->
 snapshot(Ets,process,creation) ->    
     Pids = erlang:processes(),
     ets:insert(Ets,{{process,creation},Pids}),
+    Ets;
+snapshot(Ets,process,death) -> 
+    Pids = erlang:processes(),
+    ets:insert(Ets,{{process,death},Pids}),
     Ets.
 
 diff(Ets,[X]) -> 
@@ -155,8 +159,12 @@ diff(Ets,process,creation) ->
     CurrentPids = erlang:processes(),
     Key = {process,creation},
     [{Key,Recorded}] = ets:lookup(Ets,Key),
-    [{created,P}||P<-CurrentPids,not lists:member(P,Recorded)].		  
-
+    [{created,P}||P<-CurrentPids,not lists:member(P,Recorded)];
+diff(Ets,process,death) ->
+    CurrentPids = erlang:processes(),
+    Key = {process,death},
+    [{Key,Recorded}] = ets:lookup(Ets,Key),
+    [{died,P}||P<-Recorded,not lists:member(P,CurrentPids)].
 
 %% Helpers section
 %% ----------------------------------------------------------
