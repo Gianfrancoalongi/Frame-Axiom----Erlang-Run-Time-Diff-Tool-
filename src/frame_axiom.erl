@@ -99,6 +99,10 @@ snapshot(Ets,process,death_named) ->
 snapshot(Ets,process,replaced_named) -> 
     Current = named_processes_with_pid(),
     ets:insert(Ets,{{process,replaced_named},Current}),
+    Ets;
+snapshot(Ets,process,messages) -> 
+    MessagesWithPids = messages_with_pids(),
+    ets:insert(Ets,{{process,messages},MessagesWithPids}),
     Ets.
 
 diff(Ets,[X]) -> 
@@ -193,7 +197,21 @@ diff(Ets,process,replaced_named) ->
     [{Key,RecordedWithPid}] = ets:lookup(Ets,Key),
     [{replaced,N}||{P,N} <- CurrentNamedWithPid,
 		   proplists:get_value(P,RecordedWithPid) == undefined andalso
-		       lists:keyfind(N,2,RecordedWithPid) =/= false].
+		       lists:keyfind(N,2,RecordedWithPid) =/= false];
+diff(Ets,process,messages) ->
+    MessagesWithPids = messages_with_pids(),
+    Key = {process,messages},
+    [{Key,RecordedWithPid}] = ets:lookup(Ets,Key),
+    lists:foldl(
+      fun({RecPid,RecMessages},Acc) ->
+	      OldMessages = proplists:get_value(RecPid,MessagesWithPids),
+	      case [R||R<-OldMessages,not lists:member(R,RecMessages)] of
+		  [] -> Acc;
+		  X -> Acc++[{received,RecPid,X}]
+	      end
+      end,[],RecordedWithPid).
+	      
+
 
 %% Helpers section
 %% ----------------------------------------------------------
@@ -249,3 +267,7 @@ contents_changed([{file,Path,MD5}|R],Current) ->
     end;
 contents_changed([_|R],Current) -> contents_changed(R,Current);
 contents_changed([],_) -> [].
+
+messages_with_pids() ->
+    Processes = erlang:processes(),
+    [{P,element(2,erlang:process_info(P,messages))}||P<-Processes].

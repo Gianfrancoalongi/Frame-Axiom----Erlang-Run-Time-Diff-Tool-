@@ -25,7 +25,7 @@
 -module(frame_axiom_tests).
 -include_lib("eunit/include/eunit.hrl").
 
-%% process and named_process
+%% process interface
 %% ---------------------------------------------------------
 process_creation_diff_test() ->
     Options = [creation],
@@ -40,6 +40,15 @@ process_death_diff_test() ->
     Ref = frame_axiom:snapshot([{process,Options}]),
     synchronoulsy_kill_process(Pid),
     ?assertEqual([{died,Pid}],frame_axiom:diff(Ref,[{process,Options}])).
+
+process_mailbox_diff_test() ->
+    Options = [messages],
+    Pid = synchronoulsy_start_a_process(),
+    Ref = frame_axiom:snapshot([{process,Options}]),
+    Message = {iMessage,make_ref()},
+    Pid ! Message,
+    ?assertEqual([{received,Pid,[Message]}],
+		 frame_axiom:diff(Ref,[{process,Options}])).
 
 named_process_creation_diff_test() ->
     Options = [creation_named],
@@ -334,7 +343,7 @@ synchronoulsy_start_a_process() ->
     Master = self(),
     Pid = spawn_link(fun() ->
 			     Master ! SharedSecret,
-			     receive _ -> ok end
+			     receive die -> ok end
 		     end),				      
     receive 
 	SharedSecret ->
