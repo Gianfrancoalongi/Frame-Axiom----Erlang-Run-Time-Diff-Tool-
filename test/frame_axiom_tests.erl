@@ -70,8 +70,9 @@ named_process_no_diff_test() ->
     ?assertEqual([],frame_axiom:diff(Ref,[{process,Options}])).
 
 process_no_change_diff_test() ->
-    Ref = frame_axiom:snapshot(process),
-    ?assertEqual([],frame_axiom:diff(Ref,process)).
+    Options = [death,creation],
+    Ref = frame_axiom:snapshot([{process,Options}]),
+    ?assertEqual([],frame_axiom:diff(Ref,[{process,Options}])).
 
 %% application
 %%----------------------------------------------------------
