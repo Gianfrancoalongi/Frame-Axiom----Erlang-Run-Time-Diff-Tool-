@@ -160,10 +160,6 @@ application_unload_diff_test() ->
     application:unload(snmp),
     ?assertEqual([{unloaded,snmp}],frame_axiom:diff(Ref,[{application,Options}])).
 
-application_load_no_change_diff_test() ->
-    Ref = frame_axiom:snapshot(application),
-    ?assertEqual([],frame_axiom:diff(Ref,application,load_unload)).
-
 application_load_and_start_diff_test() ->
     Ref = frame_axiom:snapshot(application),
     application:load(inets),
@@ -189,6 +185,9 @@ application_no_change_diff_test() ->
     Ref = frame_axiom:snapshot(application),
     ?assertEqual([],frame_axiom:diff(Ref,application,start_stop)).
 
+application_load_no_change_diff_test() ->
+    Ref = frame_axiom:snapshot(application),
+    ?assertEqual([],frame_axiom:diff(Ref,application,load_unload)).
 
 %% ets
 %% ---------------------------------------------------------
