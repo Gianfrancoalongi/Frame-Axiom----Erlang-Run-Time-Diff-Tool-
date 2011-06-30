@@ -30,13 +30,13 @@
 process_creation_diff_test() ->
     Options = [creation],
     Ref = frame_axiom:snapshot([{process,Options}]),
-    Pid = spawn_link(fun() -> receive _ -> ok end end),
+    Pid = synchronoulsy_start_a_process(),
     ?assertEqual([{created,Pid}],frame_axiom:diff(Ref,[{process,Options}])).
 
 process_death_diff_test() ->
     Options = [death],
     process_flag(trap_exit,true),
-    Pid = spawn_link(fun() -> receive _ -> ok end end),
+    Pid = synchronoulsy_start_a_process(),
     Ref = frame_axiom:snapshot([{process,Options}]),
     synchronoulsy_kill_process(Pid),
     ?assertEqual([{died,Pid}],frame_axiom:diff(Ref,[{process,Options}])).
@@ -323,6 +323,20 @@ synchronoulsy_start_named(Name) ->
 	    ok
     end,
     Pid.
+
+synchronoulsy_start_a_process() ->
+    SharedSecret = make_ref(),
+    Master = self(),
+    Pid = spawn_link(fun() ->
+			     Master ! SharedSecret,
+			     receive _ -> ok end
+		     end),				      
+    receive 
+	SharedSecret ->
+	    ok
+    end,
+    Pid.
+    
 
 synchronoulsy_kill_process(Pid) ->
     Pid ! die,
