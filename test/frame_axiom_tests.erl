@@ -42,7 +42,7 @@ process_death_diff_test() ->
     ?assertEqual([{died,Pid}],frame_axiom:diff(Ref,[{process,Options}])).
 
 process_mailbox_received_test() ->
-    Options = [messages],
+    Options = [received_messages],
     Pid = synchronoulsy_start_a_process(),
     Ref = frame_axiom:snapshot([{process,Options}]),
     Message = {iMessage,make_ref()},

@@ -100,9 +100,9 @@ snapshot(Ets,process,replaced_named) ->
     Current = named_processes_with_pid(),
     ets:insert(Ets,{{process,replaced_named},Current}),
     Ets;
-snapshot(Ets,process,messages) -> 
+snapshot(Ets,process,received_messages) -> 
     MessagesWithPids = messages_with_pids(),
-    ets:insert(Ets,{{process,messages},MessagesWithPids}),
+    ets:insert(Ets,{{process,received_messages},MessagesWithPids}),
     Ets.
 
 diff(Ets,[X]) -> 
@@ -198,9 +198,9 @@ diff(Ets,process,replaced_named) ->
     [{replaced,N}||{P,N} <- CurrentNamedWithPid,
 		   proplists:get_value(P,RecordedWithPid) == undefined andalso
 		       lists:keyfind(N,2,RecordedWithPid) =/= false];
-diff(Ets,process,messages) ->
+diff(Ets,process,received_messages) ->
     MessagesWithPids = messages_with_pids(),
-    Key = {process,messages},
+    Key = {process,received_messages},
     [{Key,RecordedWithPid}] = ets:lookup(Ets,Key),
     lists:foldl(
       fun({RecPid,RecMessages},Acc) ->
