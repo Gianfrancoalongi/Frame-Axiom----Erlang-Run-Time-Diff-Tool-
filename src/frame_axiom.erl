@@ -46,6 +46,9 @@ snapshot(Ets,{process,Options}) when is_list(Options) ->
 		end,Ets,Options);
 snapshot(Ets,{process,all}) ->
     snapshot(Ets,{process,all(process)});
+snapshot(Ets,{application,Options}) when is_list(Options) ->
+    lists:foldl(fun(Option,EtsAcc) -> snapshot(EtsAcc,application,Option) 
+		end,Ets,Options);
 
 snapshot(Ets,process) ->
     Processes = erlang:processes(),
@@ -104,6 +107,10 @@ snapshot(Ets,process,received_messages) ->
 snapshot(Ets,process,consumed_messages) -> 
     MessagesWithPids = messages_with_pids(),
     ets:insert(Ets,{{process,consumed_messages},MessagesWithPids}),
+    Ets;
+snapshot(Ets,application,started) -> 
+    Running = [element(1,A)||A<-application:which_applications()],
+    ets:insert(Ets,{{application,started},Running}),
     Ets.
 
 diff(Ets,[X]) -> 
@@ -220,7 +227,13 @@ diff(Ets,process,consumed_messages) ->
 		  [] -> Acc;
 		  X -> Acc++[{consumed,RecPid,X}]
 	      end
-      end,[],RecordedWithPid).
+      end,[],RecordedWithPid);
+diff(Ets,application,started) ->
+    Running = [element(1,A)||A<-application:which_applications()],
+    Key = {application,started},
+    [{Key,Recorded}] = ets:lookup(Ets,Key),
+    [{started,S}||S<-Running,not lists:member(S,Recorded)].
+
 	      
 
 

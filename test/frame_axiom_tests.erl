@@ -133,9 +133,10 @@ all_change_diff_test() ->
 %% application
 %%----------------------------------------------------------
 application_creation_diff_test() ->
-    Ref = frame_axiom:snapshot(application),
+    Options = [started],
+    Ref = frame_axiom:snapshot([{application,Options}]),
     application:start(snmp),
-    ?assertEqual([{started,snmp}],frame_axiom:diff(Ref,application,start_stop)),
+    ?assertEqual([{started,snmp}],frame_axiom:diff(Ref,[{application,Options}])),
     application:stop(snmp).
 
 application_stop_diff_test() ->
