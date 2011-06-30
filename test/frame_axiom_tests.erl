@@ -41,10 +41,6 @@ process_death_diff_test() ->
     synchronoulsy_kill_process(Pid),
     ?assertEqual([{died,Pid}],frame_axiom:diff(Ref,[{process,Options}])).
 
-process_no_change_diff_test() ->
-    Ref = frame_axiom:snapshot(process),
-    ?assertEqual([],frame_axiom:diff(Ref,process)).
-
 named_process_creation_diff_test() ->
     Ref = frame_axiom:snapshot(named_process),    
     Pid = synchronoulsy_start_named(named_process_a),
@@ -68,6 +64,10 @@ named_process_replaced_diff_test() ->
     Pid2 = synchronoulsy_start_named(named_process_c),
     ?assertEqual([{replaced,named_process_c}],frame_axiom:diff(Ref,named_process)),
     synchronoulsy_kill_process(Pid2).
+
+process_no_change_diff_test() ->
+    Ref = frame_axiom:snapshot(process),
+    ?assertEqual([],frame_axiom:diff(Ref,process)).
 
 %% application
 %%----------------------------------------------------------
