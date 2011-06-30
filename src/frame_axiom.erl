@@ -45,9 +45,8 @@ snapshot(SnapShots) when is_list(SnapShots) ->
 snapshot(Ets,{process,Options}) when is_list(Options) ->
     lists:foldl(fun(Option,EtsAcc) -> snapshot(EtsAcc,process,Option) 
 		end,Ets,Options);
-snapshot(Ets,{proces,all}) ->
-    snapshot(Ets,{process,[creation,death,received_messages,consumed_messages,
-			   creation_named,death_named,replaced_named]});
+snapshot(Ets,{process,all}) ->
+    snapshot(Ets,{process,all(process)});
 
 snapshot(Ets,process) ->
     Processes = erlang:processes(),
@@ -119,6 +118,8 @@ diff(Ets,DiffSpecs) when is_list(DiffSpecs) ->
 			Key = diffspec_key(DiffSpec),
 			Res++[{Key,diff(Ets,DiffSpec)}]
 		end,[],DiffSpecs);
+diff(Ets,{process,all}) ->
+    diff(Ets,{process,all(process)});
 diff(Ets,{process,Options}) when is_list(Options) ->
     lists:foldl(fun(Option,Res) -> Res++diff(Ets,process,Option) 
 		end,[],Options);
@@ -234,6 +235,10 @@ diff(Ets,process,consumed_messages) ->
 
 %% Helpers section
 %% ----------------------------------------------------------
+all(process) ->
+    [creation,death,received_messages,consumed_messages,
+     creation_named,death_named,replaced_named].
+
 collect(ExactP,Path) ->
     case filelib:is_dir(Path) of
 	true ->
