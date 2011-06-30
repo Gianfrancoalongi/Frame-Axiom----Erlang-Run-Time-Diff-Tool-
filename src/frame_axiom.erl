@@ -119,10 +119,13 @@ snapshot(Ets,application,stopped) ->
 snapshot(Ets,application,loaded) -> 
     Loaded = [element(1,A)||A<-application:loaded_applications()],
     ets:insert(Ets,{{application,loaded},Loaded}),
+    Ets;
+snapshot(Ets,application,unloaded) -> 
+    Loaded = [element(1,A)||A<-application:loaded_applications()],
+    ets:insert(Ets,{{application,unloaded},Loaded}),
     Ets.
-    
-    
 
+     
 diff(Ets,[X]) -> 
     diff(Ets,X);
 diff(Ets,DiffSpecs) when is_list(DiffSpecs) ->
@@ -252,7 +255,14 @@ diff(Ets,application,loaded) ->
     Loaded = [element(1,A)||A<-application:loaded_applications()],
     Key = {application,loaded},
     [{Key,Recorded}] = ets:lookup(Ets,Key),
-    [{loaded,L}||L<-Loaded,not lists:member(L,Recorded)].
+    [{loaded,L}||L<-Loaded,not lists:member(L,Recorded)];
+diff(Ets,application,unloaded) ->
+    Loaded = [element(1,A)||A<-application:loaded_applications()],
+    Key = {application,unloaded},
+    [{Key,Recorded}] = ets:lookup(Ets,Key),
+    [{unloaded,U}||U<-Recorded,not lists:member(U,Loaded)].
+
+
 
 
 
