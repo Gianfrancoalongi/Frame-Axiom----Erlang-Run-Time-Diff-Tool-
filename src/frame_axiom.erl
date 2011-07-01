@@ -132,7 +132,12 @@ snapshot(Ets,application,unloaded) ->
 snapshot(Ets,ets,creation) -> 
     Existing = ets:all(),
     ets:insert(Ets,{{ets,creation},Existing}),
+    Ets;
+snapshot(Ets,ets,deletion) -> 
+    Existing = ets:all(),
+    ets:insert(Ets,{{ets,deletion},Existing}),
     Ets.
+    
      
 diff(Ets,[X]) -> 
     diff(Ets,X);
@@ -271,7 +276,13 @@ diff(Ets,ets,creation) ->
     Current = ets:all(),
     Key = {ets,creation},
     [{Key,Recorded}] = ets:lookup(Ets,Key),
-    [{created,E}||E<-Current,not lists:member(E,Recorded)].
+    [{created,E}||E<-Current,not lists:member(E,Recorded)];
+diff(Ets,ets,deletion) ->
+    Current = ets:all(),
+    Key = {ets,deletion},
+    [{Key,Recorded}] = ets:lookup(Ets,Key),
+    [{deleted,E}||E<-Recorded,not lists:member(E,Current)].
+
 
 
 
