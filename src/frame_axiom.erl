@@ -28,11 +28,7 @@
 -export([diff/2,
 	 diff/3]).
 
-snapshot({D,Path}) when D == dir_detailed ;
-			D == dir ->
-    snapshot(ets:new(snapshot,[private]),{D,Path});
-snapshot(SnapShot) when SnapShot == port;
-			SnapShot == node;
+snapshot(SnapShot) when SnapShot == node;
 			SnapShot == named_process ->
     snapshot(ets:new(snapshot,[private]),SnapShot);
 snapshot(SnapShots) when is_list(SnapShots) ->
@@ -62,6 +58,9 @@ snapshot(Ets,{port,all}) ->
 snapshot(Ets,{port,Options}) when is_list(Options) ->
     lists:foldl(fun(Option,EtsAcc) -> snapshot(EtsAcc,port,Option) 
 		end,Ets,Options);
+snapshot(Ets,{dir,Options}) when is_list(Options) ->
+    lists:foldl(fun(Option,EtsAcc) -> snapshot(EtsAcc,dir,Option)
+		end,Ets,Options);
 
 snapshot(Ets,ets) ->
     Existing = ets:all(),
@@ -70,10 +69,6 @@ snapshot(Ets,ets) ->
 snapshot(Ets,{dir,Path}) ->
     Structure = collect(false,Path),
     ets:insert(Ets,{{dir,Path},Structure}),
-    Ets;
-snapshot(Ets,{dir_detailed,Path}) ->
-    Structure = collect(true,Path),
-    ets:insert(Ets,{{dir_detailed,Path},Structure}),
     Ets;
 snapshot(Ets,node) ->
     Current = nodes(),
@@ -139,8 +134,19 @@ snapshot(Ets,port,opened) ->
 snapshot(Ets,port,closed) -> 
     Ports = erlang:ports(),
     ets:insert(Ets,{{port,closed},Ports}),
+    Ets;
+snapshot(Ets,dir,{creation,Path}) -> 
+    Current = collect(false,Path),
+    ets:insert(Ets,{{creation,Path},Current}),
+    Ets;
+snapshot(Ets,dir,{deletion,Path}) -> 
+    Current = collect(false,Path),
+    ets:insert(Ets,{{deletion,Path},Current}),
+    Ets;
+snapshot(Ets,dir,{content_changes,Path}) -> 
+    Current = collect(true,Path),
+    ets:insert(Ets,{{content_changes,Path},Current}),
     Ets.
-    
      
 diff(Ets,[X]) -> 
     diff(Ets,X);
@@ -168,6 +174,9 @@ diff(Ets,{port,all}) ->
 diff(Ets,{port,Options}) when is_list(Options) ->
     lists:foldl(fun(Option,Res) -> Res++diff(Ets,port,Option) 
 		end,[],Options);
+diff(Ets,{dir,Options}) when is_list(Options) ->
+    lists:foldl(fun(Option,Res) -> Res++diff(Ets,dir,Option) 
+		end,[],Options);
 
 diff(Ets,ets) ->
     Current = ets:all(),
@@ -179,11 +188,6 @@ diff(Ets,{dir,Path}) ->
     [{{dir,Path},Recorded}] = ets:lookup(Ets,{dir,Path}),
     {Created,Deleted} = split(created,deleted,Current,Recorded),
     Created++Deleted;
-diff(Ets,{dir_detailed,Path}) ->
-    Current = collect(true,Path),
-    [{{dir_detailed,Path},Recorded}] = ets:lookup(Ets,{dir_detailed,Path}),
-    Changed = contents_changed(Recorded,Current),
-    Changed;
 diff(Ets,node) ->
     Current = nodes(),
     [{node,Recorded}] = ets:lookup(Ets,node),
@@ -284,14 +288,22 @@ diff(Ets,port,closed) ->
     Current = erlang:ports(),
     Key = {port,closed},
     [{Key,Recorded}] = ets:lookup(Ets,Key),
-    [{closed,C}||C<-Recorded,not lists:member(C,Current)].
-
-
-
-
-
-
-	      
+    [{closed,C}||C<-Recorded,not lists:member(C,Current)];
+diff(Ets,dir,{creation,Path}) ->
+    Current = collect(false,Path),
+    Key = {creation,Path},    
+    [{Key,Recorded}] = ets:lookup(Ets,Key),
+    [{created,C}||C<-Current,not lists:member(C,Recorded)];
+diff(Ets,dir,{deletion,Path}) ->
+    Current = collect(false,Path),
+    Key = {deletion,Path},    
+    [{Key,Recorded}] = ets:lookup(Ets,Key),
+    [{deleted,C}||C<-Recorded,not lists:member(C,Current)];
+diff(Ets,dir,{content_changes,Path}) ->
+    Current = collect(true,Path),
+    Key = {content_changes,Path},
+    [{Key,Recorded}] = ets:lookup(Ets,Key),
+    contents_changed(Recorded,Current).
 
 
 %% Helpers section

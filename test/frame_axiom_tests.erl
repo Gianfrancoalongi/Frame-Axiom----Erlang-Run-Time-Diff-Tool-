@@ -242,55 +242,60 @@ ports_all_no_change_diff_test() ->
 %% ---------------------------------------------------------
 file_direct_under_creation_diff_test() ->
     Path = ".",
-    Ref = frame_axiom:snapshot({dir,Path}),
+    Options = [{creation,Path}],
+    Ref = frame_axiom:snapshot([{dir,Options}]),
     Name= "created_this.txt",
     file:write_file(Name,"HelloWorld"),
     FilePath = filename:join(Path,Name),
-    ?assertEqual([{created,{file,FilePath}}],frame_axiom:diff(Ref,{dir,Path})),
+    ?assertEqual([{created,{file,FilePath}}],frame_axiom:diff(Ref,[{dir,Options}])),
     file:delete(FilePath).
 
 file_direct_under_deletion_diff_test() ->
     Path = ".",
+    Options = [{deletion,Path}],
     Name= "created_this.txt",
     file:write_file(Name,"HelloWorld"),
-    Ref = frame_axiom:snapshot({dir,Path}),
+    Ref = frame_axiom:snapshot([{dir,Options}]),
     FilePath = filename:join(Path,Name),
     file:delete(FilePath),
-    ?assertEqual([{deleted,{file,FilePath}}],frame_axiom:diff(Ref,{dir,Path})).
-
-file_no_change_diff_test() ->
-    Path = ".",
-    Ref = frame_axiom:snapshot({dir,Path}),
-    ?assertEqual([],frame_axiom:diff(Ref,{dir,Path})).
+    ?assertEqual([{deleted,{file,FilePath}}],frame_axiom:diff(Ref,[{dir,Options}])).
 
 file_directory_creation_test() ->
     Path = ".",
+    Options = [{creation,Path}],
     Name= "this_dir",
-    Ref = frame_axiom:snapshot({dir,Path}),
+    Ref = frame_axiom:snapshot([{dir,Options}]),
     FullPath = filename:join(Path,Name),
     ok = filelib:ensure_dir(FullPath++"/"),
-    ?assertEqual([{created,{dir,FullPath}}],frame_axiom:diff(Ref,{dir,Path})),
+    ?assertEqual([{created,{dir,FullPath}}],frame_axiom:diff(Ref,[{dir,Options}])),
     file:del_dir(FullPath).
 
 file_directory_deletion_test() ->
     Path = ".",
+    Options = [{deletion,Path}],
     Name= "this_dir",
     FullPath = filename:join(Path,Name),
     ok = filelib:ensure_dir(FullPath++"/"),
-    Ref = frame_axiom:snapshot({dir,Path}),
+    Ref = frame_axiom:snapshot([{dir,Options}]),
     file:del_dir(FullPath),    
-    ?assertEqual([{deleted,{dir,FullPath}}],frame_axiom:diff(Ref,{dir,Path})).
+    ?assertEqual([{deleted,{dir,FullPath}}],frame_axiom:diff(Ref,[{dir,Options}])).
 
-%% file system, detailed tests (size, contents)
-%% ----------------------------------------------------------
 file_contents_changed_test() ->
     Path = ".",
-    Name = "this_file.txt",    
+    Options = [{content_changes,Path}],
+    Name = "this_file.txt",
     FilePath = filename:join(Path,Name),
     file:write_file(Name,"Hello_World"),
-    Ref = frame_axiom:snapshot({dir_detailed,Path}),
+    Ref = frame_axiom:snapshot([{dir,Options}]),
     file:write_file(Name,"Wello_Horld"),
-    ?assertEqual([{content_changed,FilePath}],frame_axiom:diff(Ref,{dir_detailed,Path})).
+    ?assertEqual([{content_changed,FilePath}],frame_axiom:diff(Ref,[{dir,Options}])).
+
+file_no_change_all_diff_test() ->
+    Path = ".",
+    Options = {all,Path},
+    Ref = frame_axiom:snapshot([{dir,Options}]),
+    ?assertEqual([],frame_axiom:diff(Ref,[{dir,Options}])).
+
 
 %% node 
 %% ---------------------------------------------------------
