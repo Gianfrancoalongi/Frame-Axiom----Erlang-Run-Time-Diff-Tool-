@@ -31,9 +31,7 @@
 snapshot({D,Path}) when D == dir_detailed ;
 			D == dir ->
     snapshot(ets:new(snapshot,[private]),{D,Path});
-snapshot(SnapShot) when SnapShot == application;
-			SnapShot == ets;
-			SnapShot == port;
+snapshot(SnapShot) when SnapShot == port;
 			SnapShot == node;
 			SnapShot == named_process ->
     snapshot(ets:new(snapshot,[private]),SnapShot);
@@ -41,6 +39,9 @@ snapshot(SnapShots) when is_list(SnapShots) ->
     lists:foldl(fun(SnapShot,Ets) -> snapshot(Ets,SnapShot)
 		end,ets:new(snapshot,[private]),SnapShots).
 
+snapshot(Ets,SnapSpecs) when is_list(SnapSpecs) ->
+    lists:foldl(fun(SnapSpec,Res) -> snapshot(Res,SnapSpec) end,
+	       Ets,SnapSpecs);
 snapshot(Ets,{process,Options}) when is_list(Options) ->
     lists:foldl(fun(Option,EtsAcc) -> snapshot(EtsAcc,process,Option) 
 		end,Ets,Options);
@@ -57,15 +58,6 @@ snapshot(Ets,{ets,Options}) when is_list(Options) ->
     lists:foldl(fun(Option,EtsAcc) -> snapshot(EtsAcc,ets,Option) 
 		end,Ets,Options);
 
-snapshot(Ets,process) ->
-    Processes = erlang:processes(),
-    ets:insert(Ets,{process,Processes}),
-    Ets;
-snapshot(Ets,application) ->
-    Running = application:which_applications(),
-    Loaded = application:loaded_applications(),
-    ets:insert(Ets,{application,Running,Loaded}),
-    Ets;
 snapshot(Ets,ets) ->
     Existing = ets:all(),
     ets:insert(Ets,{ets,Existing}),
@@ -144,9 +136,8 @@ snapshot(Ets,ets,deletion) ->
 diff(Ets,[X]) -> 
     diff(Ets,X);
 diff(Ets,DiffSpecs) when is_list(DiffSpecs) ->
-    lists:foldl(fun(DiffSpec,Res) -> 
-			Key = diffspec_key(DiffSpec),
-			Res++[{Key,diff(Ets,DiffSpec)}]
+    lists:foldl(fun({DiffType,Options},Res) ->
+			Res++[{DiffType,diff(Ets,{DiffType,Options})}]
 		end,[],DiffSpecs);
 diff(Ets,{process,all}) ->
     diff(Ets,{process,all(process)});
@@ -164,11 +155,6 @@ diff(Ets,{ets,Options}) when is_list(Options) ->
     lists:foldl(fun(Option,Res) -> Res++diff(Ets,ets,Option) 
 		end,[],Options);    
 
-diff(Ets,process) ->
-    Processes = erlang:processes(),
-    [{process,Recorded}] = ets:lookup(Ets,process),
-    {Dead,Created} = split(created,died,Processes,Recorded),
-    Dead++Created;
 diff(Ets,ets) ->
     Current = ets:all(),
     [{ets,Recorded}] = ets:lookup(Ets,ets),
@@ -195,12 +181,6 @@ diff(Ets,node) ->
     {Connected,Disconnected} = split(connected,disconnected,Current,Recorded),
     Connected++Disconnected.
 
-diff(Ets,application,start_stop) -> 
-    Running = application:which_applications(),
-    [{application,Recorded,_}] = ets:lookup(Ets,application),
-    Started = [{started,hd(tuple_to_list(App))} ||App <- Running, not lists:member(App,Recorded)],
-    Stopped = [{stopped,hd(tuple_to_list(App))} ||App <- Recorded, not lists:member(App,Running)],
-    Started++Stopped;
 diff(Ets,process,creation) ->
     CurrentPids = erlang:processes(),
     Key = {process,creation},
@@ -325,9 +305,6 @@ collect(ExactP,Path) ->
 	    end
     end.
 
-diffspec_key({application,_}) ->
-    application;
-diffspec_key(X) -> X.
 
 split(KeyA,KeyB,As,Bs) ->
     {[{KeyA,A}||A<-As,not lists:member(A,Bs)],

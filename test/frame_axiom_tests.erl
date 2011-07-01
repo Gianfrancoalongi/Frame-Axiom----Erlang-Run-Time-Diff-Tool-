@@ -51,6 +51,7 @@ process_mailbox_received_test() ->
 		 frame_axiom:diff(Ref,[{process,Options}])).
 
 process_consumed_messages_test() ->
+    timer:sleep(300), %% Let the Eunit processes settle in peace
     Options = [consumed_messages],
     Pid = synchronoulsy_start_a_synchronous_consumer_process(),
     Message = {iMessage,make_ref()},
@@ -93,6 +94,7 @@ all_no_change_diff_test() ->
     ?assertEqual([],frame_axiom:diff(Ref,[{process,Options}])).
 
 all_change_diff_test() ->
+    timer:sleep(300), %% Let the Eunit processes settle in peace    
     process_flag(trap_exit,true),
     Options = all,
     Killed = synchronoulsy_start_a_process(),
@@ -127,7 +129,9 @@ all_change_diff_test() ->
 		  {died,named_process_b},
 		  {replaced,named_process_c}
 		 ],
-		 frame_axiom:diff(Ref,[{process,Options}])).
+		 frame_axiom:diff(Ref,[{process,Options}])),
+    synchronoulsy_kill_process(NamedCreated),
+    synchronoulsy_kill_process(Replacer).
 
 
 %% application
@@ -309,8 +313,13 @@ node_disconnected_diff_test() ->
 %% multiple type snapshot
 %% ---------------------------------------------------------
 multiple_type_creation_test() ->
-    Ref = frame_axiom:snapshot([process,application,ets]),
-    Pid = spawn_link(fun() -> receive _ -> ok end end),
+    P_Options = [creation],
+    A_Options = [started],
+    E_Options = [creation],
+    Ref = frame_axiom:snapshot([{process,P_Options},
+				{application,A_Options},
+				{ets,E_Options}]),
+    Pid = synchronoulsy_start_a_process(),
     application:start(snmp),
     Ets = ets:new(created,[]),
     ?assertMatch([
@@ -318,19 +327,24 @@ multiple_type_creation_test() ->
 		  {application,[{started,snmp}]},
 		  {ets,[{created,Ets}]}
 		 ],
-		 frame_axiom:diff(Ref,[process,
-				       {application,[start_stop]},
-				       ets
+		 frame_axiom:diff(Ref,[{process,P_Options},
+				       {application,A_Options},
+				       {ets,E_Options}
 				      ])),
     application:stop(snmp),
     ets:delete(Ets),
     synchronoulsy_kill_process(Pid).
 
 multiple_type_deletion_test() ->
-    Pid = spawn_link(fun() -> receive _ -> ok end end),
+    P_Options = [death],
+    A_Options = [stopped],
+    E_Options = [deletion],
+    Pid = synchronoulsy_start_a_process(),
     application:start(snmp),
     Ets = ets:new(created,[]),
-    Ref = frame_axiom:snapshot([process,application,ets]),
+    Ref = frame_axiom:snapshot([{process,P_Options},
+				{application,A_Options},
+				{ets,E_Options}]),
     application:stop(snmp),
     ets:delete(Ets),
     synchronoulsy_kill_process(Pid),
@@ -339,41 +353,53 @@ multiple_type_deletion_test() ->
 		  {application,[{stopped,snmp}]},
 		  {ets,[{deleted,Ets}]}
 		 ],
-		 frame_axiom:diff(Ref,[process,
-				       {application,[start_stop]},
-				       ets])).
+		 frame_axiom:diff(Ref,[{process,P_Options},
+				       {application,A_Options},
+				       {ets,E_Options}])).
     
 multiple_type_mixed_test() ->
+    P_Options = [creation],
+    E_Options = [deletion],
     Ets = ets:new(created,[]),
-    Ref = frame_axiom:snapshot([process,ets]),
-    Pid = spawn_link(fun() -> receive _ -> ok end end),
+    Ref = frame_axiom:snapshot([{process,P_Options},
+				{ets,E_Options}]),
+    Pid = synchronoulsy_start_a_process(),
     ets:delete(Ets),
     ?assertMatch([
 		  {process,[{created,Pid}]},
 		  {ets,[{deleted,Ets}]}
 		 ],
-		 frame_axiom:diff(Ref,[process,ets])),
+		 frame_axiom:diff(Ref,[{process,P_Options},
+				       {ets,E_Options}])),
     synchronoulsy_kill_process(Pid).
 
-multiple_type_no_change_test() ->
-    Ref = frame_axiom:snapshot([process,ets]),
-    ?assertEqual([{process,[]},{ets,[]}],frame_axiom:diff(Ref,[process,ets])).
+multiple_type_no_change_test() ->    
+    Ref = frame_axiom:snapshot([{application,all},
+				{ets,all}]),
+    ?assertEqual([{application,[]},{ets,[]}],
+		 frame_axiom:diff(Ref,[{application,all},
+				       {ets,all}])).
 
 %% multiple calls to snapshot
 %% ---------------------------------------------------------
 second_snapshot_call_test() ->
-    Ref = frame_axiom:snapshot(ets),
+    E_Options = [creation],
+    A_Options = [started],
+    Ref = frame_axiom:snapshot([{ets,E_Options}]),
     Ets = ets:new(test,[]),
-    frame_axiom:snapshot(Ref,application),
+    frame_axiom:snapshot(Ref,[{application,A_Options}]),
     application:start(snmp),
     ?assertEqual([{ets,[{created,Ets}]},
-		  {application,[{started,snmp}]}
-		 ],
-		 frame_axiom:diff(Ref,[ets,{application,[start_stop]}])).
+    		  {application,[{started,snmp}]}
+    		 ],
+    		 frame_axiom:diff(Ref,[{ets,E_Options},
+    				       {application,A_Options}])),
+    application:stop(snmp).
     
 
 successive_snapshots_of_same_resets_test() ->    
-    Ref = frame_axiom:snapshot(ets),
+    E_Options = all,
+    Ref = frame_axiom:snapshot([{ets,E_Options}]),
     Ets = ets:new(a,[]),
     frame_axiom:snapshot(Ref,ets),
     ?assertEqual([],frame_axiom:diff(Ref,ets)),
