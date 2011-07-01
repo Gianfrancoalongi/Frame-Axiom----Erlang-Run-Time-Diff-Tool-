@@ -57,6 +57,9 @@ snapshot(Ets,{ets,all}) ->
 snapshot(Ets,{ets,Options}) when is_list(Options) ->
     lists:foldl(fun(Option,EtsAcc) -> snapshot(EtsAcc,ets,Option) 
 		end,Ets,Options);
+snapshot(Ets,{port,Options}) when is_list(Options) ->
+    lists:foldl(fun(Option,EtsAcc) -> snapshot(EtsAcc,port,Option) 
+		end,Ets,Options);
 
 snapshot(Ets,ets) ->
     Existing = ets:all(),
@@ -130,6 +133,10 @@ snapshot(Ets,ets,creation) ->
 snapshot(Ets,ets,deletion) -> 
     Existing = ets:all(),
     ets:insert(Ets,{{ets,deletion},Existing}),
+    Ets;
+snapshot(Ets,port,opened) -> 
+    Ports = erlang:ports(),
+    ets:insert(Ets,{{port,opened},Ports}),
     Ets.
     
      
@@ -153,7 +160,10 @@ diff(Ets,{ets,all}) ->
     diff(Ets,{ets,all(ets)});
 diff(Ets,{ets,Options}) when is_list(Options) ->
     lists:foldl(fun(Option,Res) -> Res++diff(Ets,ets,Option) 
-		end,[],Options);    
+		end,[],Options);
+diff(Ets,{port,Options}) when is_list(Options) ->
+    lists:foldl(fun(Option,Res) -> Res++diff(Ets,port,Option) 
+		end,[],Options);
 
 diff(Ets,ets) ->
     Current = ets:all(),
@@ -265,7 +275,13 @@ diff(Ets,ets,deletion) ->
     Current = ets:all(),
     Key = {ets,deletion},
     [{Key,Recorded}] = ets:lookup(Ets,Key),
-    [{deleted,E}||E<-Recorded,not lists:member(E,Current)].
+    [{deleted,E}||E<-Recorded,not lists:member(E,Current)];
+diff(Ets,port,opened) ->
+    Current = erlang:ports(),
+    Key = {port,opened},
+    [{Key,Recorded}] = ets:lookup(Ets,Key),
+    [{opened,P}||P<-Current,not lists:member(P,Recorded)].
+
 
 
 

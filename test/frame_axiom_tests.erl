@@ -220,9 +220,10 @@ ets_all_change_test() ->
 %% port
 %% ---------------------------------------------------------
 ports_creation_diff_test() ->
-    Ref = frame_axiom:snapshot(port),
+    Options = [opened],
+    Ref = frame_axiom:snapshot([{port,Options}]),
     P = erlang:open_port({spawn,"cd"},[stream]),
-    ?assertEqual([{opened,P}],frame_axiom:diff(Ref,port)),
+    ?assertEqual([{opened,P}],frame_axiom:diff(Ref,[{port,Options}])),
     erlang:port_close(P).
 
 ports_closing_diff_test() ->
