@@ -137,6 +137,10 @@ snapshot(Ets,ets,deletion) ->
 snapshot(Ets,port,opened) -> 
     Ports = erlang:ports(),
     ets:insert(Ets,{{port,opened},Ports}),
+    Ets;
+snapshot(Ets,port,closed) -> 
+    Ports = erlang:ports(),
+    ets:insert(Ets,{{port,closed},Ports}),
     Ets.
     
      
@@ -280,7 +284,13 @@ diff(Ets,port,opened) ->
     Current = erlang:ports(),
     Key = {port,opened},
     [{Key,Recorded}] = ets:lookup(Ets,Key),
-    [{opened,P}||P<-Current,not lists:member(P,Recorded)].
+    [{opened,P}||P<-Current,not lists:member(P,Recorded)];
+diff(Ets,port,closed) ->
+    Current = erlang:ports(),
+    Key = {port,closed},
+    [{Key,Recorded}] = ets:lookup(Ets,Key),
+    [{closed,C}||C<-Recorded,not lists:member(C,Current)].
+
 
 
 
