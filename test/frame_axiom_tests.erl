@@ -233,9 +233,10 @@ ports_closing_diff_test() ->
     erlang:port_close(P),
     ?assertEqual([{closed,P}],frame_axiom:diff(Ref,[{port,Options}])).
 
-ports_no_change_diff_test() ->
-    Ref = frame_axiom:snapshot(port),
-    ?assertEqual([],frame_axiom:diff(Ref,port)).
+ports_all_no_change_diff_test() ->
+    Options = all,
+    Ref = frame_axiom:snapshot([{port,Options}]),
+    ?assertEqual([],frame_axiom:diff(Ref,[{port,Options}])).
 
 %% file system
 %% ---------------------------------------------------------

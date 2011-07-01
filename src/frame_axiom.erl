@@ -57,6 +57,8 @@ snapshot(Ets,{ets,all}) ->
 snapshot(Ets,{ets,Options}) when is_list(Options) ->
     lists:foldl(fun(Option,EtsAcc) -> snapshot(EtsAcc,ets,Option) 
 		end,Ets,Options);
+snapshot(Ets,{port,all}) ->
+    snapshot(Ets,{port,all(port)});
 snapshot(Ets,{port,Options}) when is_list(Options) ->
     lists:foldl(fun(Option,EtsAcc) -> snapshot(EtsAcc,port,Option) 
 		end,Ets,Options);
@@ -64,10 +66,6 @@ snapshot(Ets,{port,Options}) when is_list(Options) ->
 snapshot(Ets,ets) ->
     Existing = ets:all(),
     ets:insert(Ets,{ets,Existing}),
-    Ets;
-snapshot(Ets,port) ->
-    Existing = erlang:ports(),
-    ets:insert(Ets,{port,Existing}),
     Ets;
 snapshot(Ets,{dir,Path}) ->
     Structure = collect(false,Path),
@@ -165,6 +163,8 @@ diff(Ets,{ets,all}) ->
 diff(Ets,{ets,Options}) when is_list(Options) ->
     lists:foldl(fun(Option,Res) -> Res++diff(Ets,ets,Option) 
 		end,[],Options);
+diff(Ets,{port,all}) ->
+    diff(Ets,{port,all(port)});
 diff(Ets,{port,Options}) when is_list(Options) ->
     lists:foldl(fun(Option,Res) -> Res++diff(Ets,port,Option) 
 		end,[],Options);
@@ -174,11 +174,6 @@ diff(Ets,ets) ->
     [{ets,Recorded}] = ets:lookup(Ets,ets),
     {Created,Deleted} = split(created,deleted,Current,Recorded),
     Created++Deleted;
-diff(Ets,port) ->
-    Ports = erlang:ports(),
-    [{port,Recorded}] = ets:lookup(Ets,port),
-    {Opened,Closed} = split(opened,closed,Ports,Recorded),
-    Opened++Closed;
 diff(Ets,{dir,Path}) ->
     Current = collect(false,Path),
     [{{dir,Path},Recorded}] = ets:lookup(Ets,{dir,Path}),
@@ -307,7 +302,10 @@ all(process) ->
 all(application) ->
     [loaded,unloaded,started,stopped];
 all(ets) ->
-    [creation,deletion].
+    [creation,deletion];
+all(port) ->
+    [opened,closed].
+
 
 
 collect(ExactP,Path) ->
