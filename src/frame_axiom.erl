@@ -51,6 +51,9 @@ snapshot(Ets,{application,all}) ->
 snapshot(Ets,{application,Options}) when is_list(Options) ->
     lists:foldl(fun(Option,EtsAcc) -> snapshot(EtsAcc,application,Option) 
 		end,Ets,Options);
+snapshot(Ets,{ets,Options}) ->
+    lists:foldl(fun(Option,EtsAcc) -> snapshot(EtsAcc,ets,Option) 
+		end,Ets,Options);
 
 snapshot(Ets,process) ->
     Processes = erlang:processes(),
@@ -125,8 +128,11 @@ snapshot(Ets,application,loaded) ->
 snapshot(Ets,application,unloaded) -> 
     Loaded = [element(1,A)||A<-application:loaded_applications()],
     ets:insert(Ets,{{application,unloaded},Loaded}),
+    Ets;
+snapshot(Ets,ets,creation) -> 
+    Existing = ets:all(),
+    ets:insert(Ets,{{ets,creation},Existing}),
     Ets.
-
      
 diff(Ets,[X]) -> 
     diff(Ets,X);
@@ -145,6 +151,10 @@ diff(Ets,{application,all}) ->
 diff(Ets,{application,Options}) when is_list(Options) ->
     lists:foldl(fun(Option,Res) -> Res++diff(Ets,application,Option) 
 		end,[],Options);    
+diff(Ets,{ets,Options}) when is_list(Options) ->
+    lists:foldl(fun(Option,Res) -> Res++diff(Ets,ets,Option) 
+		end,[],Options);    
+
 diff(Ets,process) ->
     Processes = erlang:processes(),
     [{process,Recorded}] = ets:lookup(Ets,process),
@@ -256,10 +266,12 @@ diff(Ets,application,unloaded) ->
     Loaded = [element(1,A)||A<-application:loaded_applications()],
     Key = {application,unloaded},
     [{Key,Recorded}] = ets:lookup(Ets,Key),
-    [{unloaded,U}||U<-Recorded,not lists:member(U,Loaded)].
-
-
-
+    [{unloaded,U}||U<-Recorded,not lists:member(U,Loaded)];
+diff(Ets,ets,creation) ->
+    Current = ets:all(),
+    Key = {ets,creation},
+    [{Key,Recorded}] = ets:lookup(Ets,Key),
+    [{created,E}||E<-Current,not lists:member(E,Recorded)].
 
 
 

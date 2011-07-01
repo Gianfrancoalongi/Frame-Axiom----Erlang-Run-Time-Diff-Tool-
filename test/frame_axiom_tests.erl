@@ -186,9 +186,10 @@ application_all_no_diff_test() ->
 %% ets
 %% ---------------------------------------------------------
 ets_creation_diff_test() ->
-    Ref = frame_axiom:snapshot(ets),
+    Options = [creation],
+    Ref = frame_axiom:snapshot([{ets,Options}]),
     New = ets:new(some,[]),
-    ?assertEqual([{created,New}],frame_axiom:diff(Ref,ets)).
+    ?assertEqual([{created,New}],frame_axiom:diff(Ref,[{ets,Options}])).
 
 ets_delection_diff_test() ->
     E = ets:new(some,[]),
