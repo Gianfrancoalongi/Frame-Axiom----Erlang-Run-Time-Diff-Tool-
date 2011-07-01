@@ -46,6 +46,8 @@ snapshot(Ets,{process,Options}) when is_list(Options) ->
 		end,Ets,Options);
 snapshot(Ets,{process,all}) ->
     snapshot(Ets,{process,all(process)});
+snapshot(Ets,{application,all}) ->
+    snapshot(Ets,{application,all(application)});
 snapshot(Ets,{application,Options}) when is_list(Options) ->
     lists:foldl(fun(Option,EtsAcc) -> snapshot(EtsAcc,application,Option) 
 		end,Ets,Options);
@@ -138,6 +140,11 @@ diff(Ets,{process,all}) ->
 diff(Ets,{process,Options}) when is_list(Options) ->
     lists:foldl(fun(Option,Res) -> Res++diff(Ets,process,Option) 
 		end,[],Options);
+diff(Ets,{application,all}) ->
+    diff(Ets,{application,all(application)});
+diff(Ets,{application,Options}) when is_list(Options) ->
+    lists:foldl(fun(Option,Res) -> Res++diff(Ets,application,Option) 
+		end,[],Options);    
 diff(Ets,process) ->
     Processes = erlang:processes(),
     [{process,Recorded}] = ets:lookup(Ets,process),
@@ -163,8 +170,6 @@ diff(Ets,{dir_detailed,Path}) ->
     [{{dir_detailed,Path},Recorded}] = ets:lookup(Ets,{dir_detailed,Path}),
     Changed = contents_changed(Recorded,Current),
     Changed;
-diff(Ets,{application,DiffSpec}) ->
-    diff(Ets,application,DiffSpec);
 diff(Ets,node) ->
     Current = nodes(),
     [{node,Recorded}] = ets:lookup(Ets,node),
@@ -274,7 +279,9 @@ diff(Ets,application,unloaded) ->
 %% ----------------------------------------------------------
 all(process) ->
     [creation,death,received_messages,consumed_messages,
-     creation_named,death_named,replaced_named].
+     creation_named,death_named,replaced_named];
+all(application) ->
+    [loaded,unloaded,started,stopped].
 
 collect(ExactP,Path) ->
     case filelib:is_dir(Path) of

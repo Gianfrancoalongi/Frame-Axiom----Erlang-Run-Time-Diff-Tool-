@@ -160,14 +160,22 @@ application_unload_diff_test() ->
     application:unload(snmp),
     ?assertEqual([{unloaded,snmp}],frame_axiom:diff(Ref,[{application,Options}])).
 
-application_load_and_start_diff_test() ->
-    Ref = frame_axiom:snapshot(application),
+application_all_diff_test() ->
+    Options = all,
+    application:start(odbc),
     application:load(inets),
+    Ref = frame_axiom:snapshot([{application,Options}]),
+    application:unload(inets),
     application:start(snmp),
-    ?assertEqual([{started,snmp},{loaded,inets},{loaded,snmp}],
-		 frame_axiom:diff(Ref,application,[start_stop,
-						   load_unload])),
+    application:stop(odbc),
+    ?assertEqual([{loaded,snmp},
+		  {unloaded,inets},
+		  {started,snmp},
+		  {stopped,odbc}
+		 ],
+		 frame_axiom:diff(Ref,[{application,Options}])),
     application:stop(snmp),
+    application:unload(snmp),
     application:unload(inets).
 
 application_unload_and_stop_diff_test() ->
