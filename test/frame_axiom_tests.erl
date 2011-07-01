@@ -198,9 +198,20 @@ ets_delection_diff_test() ->
     ets:delete(E),
     ?assertEqual([{deleted,E}],frame_axiom:diff(Ref,[{ets,Options}])).
 
-ets_no_change_test() ->
-    Ref = frame_axiom:snapshot(ets),
-    ?assertEqual([],frame_axiom:diff(Ref,ets)).
+ets_all_no_change_test() ->
+    Options = all,
+    Ref = frame_axiom:snapshot([{ets,Options}]),
+    ?assertEqual([],frame_axiom:diff(Ref,[{ets,Options}])).
+        
+ets_all_change_test() ->
+    Options = all,
+    D = ets:new(some,[]),
+    Ref = frame_axiom:snapshot([{ets,Options}]),
+    C = ets:new(other,[]),
+    ets:delete(D),
+    ?assertEqual([{created,C},
+		  {deleted,D}],
+		 frame_axiom:diff(Ref,[{ets,Options}])).
 
 %% port
 %% ---------------------------------------------------------

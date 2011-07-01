@@ -51,7 +51,9 @@ snapshot(Ets,{application,all}) ->
 snapshot(Ets,{application,Options}) when is_list(Options) ->
     lists:foldl(fun(Option,EtsAcc) -> snapshot(EtsAcc,application,Option) 
 		end,Ets,Options);
-snapshot(Ets,{ets,Options}) ->
+snapshot(Ets,{ets,all}) ->
+    snapshot(Ets,{ets,all(ets)});
+snapshot(Ets,{ets,Options}) when is_list(Options) ->
     lists:foldl(fun(Option,EtsAcc) -> snapshot(EtsAcc,ets,Option) 
 		end,Ets,Options);
 
@@ -156,6 +158,8 @@ diff(Ets,{application,all}) ->
 diff(Ets,{application,Options}) when is_list(Options) ->
     lists:foldl(fun(Option,Res) -> Res++diff(Ets,application,Option) 
 		end,[],Options);    
+diff(Ets,{ets,all}) ->
+    diff(Ets,{ets,all(ets)});
 diff(Ets,{ets,Options}) when is_list(Options) ->
     lists:foldl(fun(Option,Res) -> Res++diff(Ets,ets,Option) 
 		end,[],Options);    
@@ -295,7 +299,10 @@ all(process) ->
     [creation,death,received_messages,consumed_messages,
      creation_named,death_named,replaced_named];
 all(application) ->
-    [loaded,unloaded,started,stopped].
+    [loaded,unloaded,started,stopped];
+all(ets) ->
+    [creation,deletion].
+
 
 collect(ExactP,Path) ->
     case filelib:is_dir(Path) of
