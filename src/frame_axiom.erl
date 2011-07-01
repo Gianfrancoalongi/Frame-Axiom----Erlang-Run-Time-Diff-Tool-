@@ -176,21 +176,12 @@ diff(Ets,node) ->
     {Connected,Disconnected} = split(connected,disconnected,Current,Recorded),
     Connected++Disconnected.
 
-diff(Ets,application,Modes) when is_list(Modes) ->
-    lists:foldl(fun(Mode,Acc) -> Acc++diff(Ets,application,Mode) end,[],Modes);
-
 diff(Ets,application,start_stop) -> 
     Running = application:which_applications(),
     [{application,Recorded,_}] = ets:lookup(Ets,application),
     Started = [{started,hd(tuple_to_list(App))} ||App <- Running, not lists:member(App,Recorded)],
     Stopped = [{stopped,hd(tuple_to_list(App))} ||App <- Recorded, not lists:member(App,Running)],
     Started++Stopped;
-diff(Ets,application,load_unload) ->
-    Loaded = application:loaded_applications(),
-    [{application,_,Recorded}] = ets:lookup(Ets,application),
-    NewLoaded = [{loaded,hd(tuple_to_list(App))} ||App <- Loaded, not lists:member(App,Recorded)], 
-    UnLoaded = [{unloaded,hd(tuple_to_list(App))} ||App <- Recorded, not lists:member(App,Loaded)],
-    NewLoaded++UnLoaded;
 diff(Ets,process,creation) ->
     CurrentPids = erlang:processes(),
     Key = {process,creation},
