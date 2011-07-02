@@ -307,8 +307,6 @@ diff(Ets,node,disconnection) ->
     [{Key,Recorded}] = ets:lookup(Ets,Key),
     [{disconnected,N}||N<-Recorded,not lists:member(N,Current)].
     
-
-
 %% Helpers section
 %% ----------------------------------------------------------
 all(process) ->
@@ -324,10 +322,6 @@ all(node) ->
     [connection,disconnection];
 all(dir) ->
     [creation,deletion,content_changes].
-
-
-
-
 
 collect(ExactP,Path) ->
     case filelib:is_dir(Path) of
