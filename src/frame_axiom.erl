@@ -28,9 +28,6 @@
 -export([diff/2,
 	 diff/3]).
 
-snapshot(SnapShot) when SnapShot == node;
-			SnapShot == named_process ->
-    snapshot(ets:new(snapshot,[private]),SnapShot);
 snapshot(SnapShots) when is_list(SnapShots) ->
     lists:foldl(fun(SnapShot,Ets) -> snapshot(Ets,SnapShot)
 		end,ets:new(snapshot,[private]),SnapShots).
@@ -58,22 +55,17 @@ snapshot(Ets,{port,all}) ->
 snapshot(Ets,{port,Options}) when is_list(Options) ->
     lists:foldl(fun(Option,EtsAcc) -> snapshot(EtsAcc,port,Option) 
 		end,Ets,Options);
+snapshot(Ets,{dir,{all,Path}}) ->
+    snapshot(Ets,{dir,[{X,Path}||X<-all(dir)]});
 snapshot(Ets,{dir,Options}) when is_list(Options) ->
     lists:foldl(fun(Option,EtsAcc) -> snapshot(EtsAcc,dir,Option)
 		end,Ets,Options);
-
-snapshot(Ets,ets) ->
-    Existing = ets:all(),
-    ets:insert(Ets,{ets,Existing}),
-    Ets;
-snapshot(Ets,{dir,Path}) ->
-    Structure = collect(false,Path),
-    ets:insert(Ets,{{dir,Path},Structure}),
-    Ets;
-snapshot(Ets,node) ->
-    Current = nodes(),
-    ets:insert(Ets,{node,Current}),
-    Ets.
+snapshot(Ets,{node,all}) ->
+    snapshot(Ets,{node,all(node)});
+snapshot(Ets,{node,Options}) when is_list(Options) ->
+    lists:foldl(fun(Option,EtsAcc) -> snapshot(EtsAcc,node,Option)
+		end,Ets,Options).
+    
 
 snapshot(Ets,process,creation) ->    
     Pids = erlang:processes(),
@@ -146,7 +138,16 @@ snapshot(Ets,dir,{deletion,Path}) ->
 snapshot(Ets,dir,{content_changes,Path}) -> 
     Current = collect(true,Path),
     ets:insert(Ets,{{content_changes,Path},Current}),
+    Ets;
+snapshot(Ets,node,connection) -> 
+    Current = nodes(),
+    ets:insert(Ets,{{node,connection},Current}),
+    Ets;
+snapshot(Ets,node,disconnection) -> 
+    Current = nodes(),
+    ets:insert(Ets,{{node,disconnection},Current}),
     Ets.
+
      
 diff(Ets,[X]) -> 
     diff(Ets,X);
@@ -174,25 +175,16 @@ diff(Ets,{port,all}) ->
 diff(Ets,{port,Options}) when is_list(Options) ->
     lists:foldl(fun(Option,Res) -> Res++diff(Ets,port,Option) 
 		end,[],Options);
+diff(Ets,{dir,{all,Path}}) ->
+    diff(Ets,{dir,[{X,Path}||X<-all(dir)]});
 diff(Ets,{dir,Options}) when is_list(Options) ->
     lists:foldl(fun(Option,Res) -> Res++diff(Ets,dir,Option) 
 		end,[],Options);
-
-diff(Ets,ets) ->
-    Current = ets:all(),
-    [{ets,Recorded}] = ets:lookup(Ets,ets),
-    {Created,Deleted} = split(created,deleted,Current,Recorded),
-    Created++Deleted;
-diff(Ets,{dir,Path}) ->
-    Current = collect(false,Path),
-    [{{dir,Path},Recorded}] = ets:lookup(Ets,{dir,Path}),
-    {Created,Deleted} = split(created,deleted,Current,Recorded),
-    Created++Deleted;
-diff(Ets,node) ->
-    Current = nodes(),
-    [{node,Recorded}] = ets:lookup(Ets,node),
-    {Connected,Disconnected} = split(connected,disconnected,Current,Recorded),
-    Connected++Disconnected.
+diff(Ets,{node,all}) ->
+    diff(Ets,{node,all(node)});
+diff(Ets,{node,Options}) when is_list(Options) ->
+    lists:foldl(fun(Option,Res) -> Res++diff(Ets,node,Option) 
+		end,[],Options).
 
 diff(Ets,process,creation) ->
     CurrentPids = erlang:processes(),
@@ -303,7 +295,18 @@ diff(Ets,dir,{content_changes,Path}) ->
     Current = collect(true,Path),
     Key = {content_changes,Path},
     [{Key,Recorded}] = ets:lookup(Ets,Key),
-    contents_changed(Recorded,Current).
+    contents_changed(Recorded,Current);
+diff(Ets,node,connection) ->
+    Current = nodes(),
+    Key = {node,connection},
+    [{Key,Recorded}] = ets:lookup(Ets,Key),
+    [{connected,N}||N<-Current,not lists:member(N,Recorded)];
+diff(Ets,node,disconnection) ->
+    Current = nodes(),
+    Key = {node,disconnection},
+    [{Key,Recorded}] = ets:lookup(Ets,Key),
+    [{disconnected,N}||N<-Recorded,not lists:member(N,Current)].
+    
 
 
 %% Helpers section
@@ -316,7 +319,13 @@ all(application) ->
 all(ets) ->
     [creation,deletion];
 all(port) ->
-    [opened,closed].
+    [opened,closed];
+all(node) ->
+    [connection,disconnection];
+all(dir) ->
+    [creation,deletion,content_changes].
+
+
 
 
 
@@ -340,11 +349,6 @@ collect(ExactP,Path) ->
 		    [{file,Path}]
 	    end
     end.
-
-
-split(KeyA,KeyB,As,Bs) ->
-    {[{KeyA,A}||A<-As,not lists:member(A,Bs)],
-     [{KeyB,B}||B<-Bs,not lists:member(B,As)]}.
 
 named_processes() ->
     Procs = [{P,erlang:process_info(P,registered_name)}||P<-erlang:processes()],

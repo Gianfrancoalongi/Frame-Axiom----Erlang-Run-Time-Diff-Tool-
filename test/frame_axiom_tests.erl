@@ -89,6 +89,7 @@ named_process_replaced_diff_test() ->
     synchronoulsy_kill_process(Pid2).
 
 all_no_change_diff_test() ->
+    timer:sleep(300), %% Let the Eunit processes settle in peace    
     Options = all,
     Ref = frame_axiom:snapshot([{process,Options}]),
     ?assertEqual([],frame_axiom:diff(Ref,[{process,Options}])).
@@ -302,22 +303,41 @@ file_no_change_all_diff_test() ->
 node_connected_diff_test() ->
     ensure_empd(),
     net_kernel:start([box_box,shortnames]),
-    Ref = frame_axiom:snapshot(node),
+    Options = [connection],
+    Ref = frame_axiom:snapshot([{node,Options}]),
     {ok,Node} = slave:start(list_to_atom(inet_db:gethostname()),'slave'),
-    ?assertEqual([{connected,Node}],frame_axiom:diff(Ref,node)),
+    ?assertEqual([{connected,Node}],frame_axiom:diff(Ref,[{node,Options}])),
     slave:stop(Node),
     net_kernel:stop().
 
 node_disconnected_diff_test() ->
     ensure_empd(),
     net_kernel:start([box_box,shortnames]),
+    Options = [disconnection],
     {ok,Node} = slave:start(list_to_atom(inet_db:gethostname()),'slave'),
-    Ref = frame_axiom:snapshot(node),
+    Ref = frame_axiom:snapshot([{node,Options}]),
     slave:stop(Node),
-    ?assertEqual([{disconnected,Node}],frame_axiom:diff(Ref,node)),
+    ?assertEqual([{disconnected,Node}],frame_axiom:diff(Ref,[{node,Options}])),
     net_kernel:stop().
 
+node_no_diff_all_test() ->
+    Options = all,
+    Ref = frame_axiom:snapshot([{node,Options}]),
+    ?assertEqual([],frame_axiom:diff(Ref,[{node,Options}])).
 
+node_all_diff_test() ->
+    ensure_empd(),
+    net_kernel:start([box_box,shortnames]),
+    Options = all,
+    {ok,Node1} = slave:start(list_to_atom(inet_db:gethostname()),'slave_one'),
+    Ref = frame_axiom:snapshot([{node,Options}]),
+    slave:stop(Node1),
+    {ok,Node2} = slave:start(list_to_atom(inet_db:gethostname()),'slave_two'),
+    ?assertEqual([{connected,Node2},
+		  {disconnected,Node1}],frame_axiom:diff(Ref,[{node,Options}])),
+    slave:stop(Node2),
+    net_kernel:stop().    
+    
 %% multiple type snapshot
 %% ---------------------------------------------------------
 multiple_type_creation_test() ->
@@ -404,15 +424,13 @@ second_snapshot_call_test() ->
     				       {application,A_Options}])),
     application:stop(snmp).
     
-
 successive_snapshots_of_same_resets_test() ->    
     E_Options = all,
     Ref = frame_axiom:snapshot([{ets,E_Options}]),
     Ets = ets:new(a,[]),
-    frame_axiom:snapshot(Ref,ets),
-    ?assertEqual([],frame_axiom:diff(Ref,ets)),
+    frame_axiom:snapshot(Ref,[{ets,E_Options}]),
+    ?assertEqual([],frame_axiom:diff(Ref,[{ets,E_Options}])),
     ets:delete(Ets).
-
 
 %% helpers
 %% -----------------------------------------------------------------------------
